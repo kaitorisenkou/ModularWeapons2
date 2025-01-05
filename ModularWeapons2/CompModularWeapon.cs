@@ -1,4 +1,5 @@
 ﻿using RimWorld;
+using System.Collections.Generic;
 using Verse;
 
 namespace ModularWeapons2 {
@@ -8,6 +9,7 @@ namespace ModularWeapons2 {
                 return (CompProperties_ModularWeapon)this.props;
             }
         }
+        List<ModularPartsDef> partsDefs;
 
         public float GetEquippedOffset(StatDef stat) {
             return 0;

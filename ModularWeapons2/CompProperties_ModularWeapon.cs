@@ -7,5 +7,6 @@ namespace ModularWeapons2 {
             this.compClass = typeof(CompModularWeapon);
         }
         public List<MountAdapterClass> partsMounts;
+        public List<ModularPartsDef> defaultParts;
     }
 }
