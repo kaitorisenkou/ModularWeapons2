@@ -5,6 +5,7 @@ using Verse;
 namespace ModularWeapons2 {
     public class ModularPartsDef : Def {
         public ModularPartsMountDef attachedTo;
+        public GraphicData graphicData;
 
         public List<StatModifier> StatOffsets;
         public List<StatModifier> StatFactors;

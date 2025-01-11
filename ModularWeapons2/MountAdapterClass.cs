@@ -7,5 +7,7 @@ namespace ModularWeapons2 {
         public Vector2 offset = Vector2.zero;
         public Texture adapterTexture = null;
         public bool allowMoreAdapter = true;
+        [DefaultValue(null)]
+        public ModularPartsDef defaultPart = null;
     }
 }

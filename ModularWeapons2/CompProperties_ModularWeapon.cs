@@ -6,7 +6,10 @@ namespace ModularWeapons2 {
         public CompProperties_ModularWeapon() {
             this.compClass = typeof(CompModularWeapon);
         }
+
+        public GraphicData baseGraphicData;
+
         public List<MountAdapterClass> partsMounts;
-        public List<ModularPartsDef> defaultParts;
+        //public List<ModularPartsDef> defaultParts;
     }
 }
