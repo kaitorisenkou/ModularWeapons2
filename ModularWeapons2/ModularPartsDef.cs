@@ -4,6 +4,7 @@ using Verse;
 
 namespace ModularWeapons2 {
     public class ModularPartsDef : Def {
+        public string labelShort;
         public ModularPartsMountDef attachedTo;
         public GraphicData graphicData;
 

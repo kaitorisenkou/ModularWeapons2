@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 using Verse;
+using Verse.Noise;
 
 namespace ModularWeapons2 {
     public class MWCameraRenderer : MonoBehaviour {
@@ -15,8 +17,10 @@ namespace ModularWeapons2 {
         }
         CompModularWeapon targetWeaponInt = null;
         public void OnPostRender() {
-            foreach(var i in targetWeaponInt.GetMaterialsForRenderCam()) {
-                GenDraw.DrawMeshNowOrLater(MeshMakerPlanes.NewPlaneMesh(2f, false), Matrix4x4.identity, i, true);
+            foreach(var i in targetWeaponInt.GetRequestsForRenderCam().OrderBy(t=>t.layerOrder)) {
+                var matrix = new Matrix4x4();
+                matrix.SetTRS(i.offset, Quaternion.identity, Vector3.one);
+                GenDraw.DrawMeshNowOrLater(MeshMakerPlanes.NewPlaneMesh(1f, false), Quaternion.Euler(90, 0, 0) * i.offset, Quaternion.identity, i.material, true);
             }
         }
         private static Camera mwCamera = InitCamera();
@@ -41,6 +45,16 @@ namespace ModularWeapons2 {
 
             mwCameraRenderer = gameObject.GetComponent<MWCameraRenderer>();
             return component;
+        }
+        public struct MWCameraRequest {
+            public Material material;
+            public Vector2 offset;
+            public int layerOrder;
+            public MWCameraRequest(Material material, Vector2 offset, int layerOrder) {
+                this.material = material;
+                this.offset = offset;
+                this.layerOrder = layerOrder;
+            }
         }
     }
 }

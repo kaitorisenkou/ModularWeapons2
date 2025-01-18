@@ -13,7 +13,7 @@ namespace ModularWeapons2 {
                 return (CompProperties_ModularWeapon)this.props;
             }
         }
-        List<ModularPartsDef> attachedParts;
+        public List<ModularPartsDef> attachedParts;
 
         public float GetEquippedOffset(StatDef stat) {
             return 0;
@@ -39,11 +39,14 @@ namespace ModularWeapons2 {
         public Texture GetTexture() {
             if (renderTextureInt == null) {
                 var texture = Props.baseGraphicData.Graphic.MatSingle.mainTexture;
-                renderTextureInt = new RenderTexture(texture.width, texture.height, 32, RenderTextureFormat.ARGB32);
+                renderTextureInt = new RenderTexture(texture.width*2, texture.height*2, 32, RenderTextureFormat.ARGB32);
                 textureDirty = true;
             }
             if (textureDirty) {
                 MWCameraRenderer.Render(renderTextureInt, this);
+                if (materialInt != null) {
+                    materialInt.mainTexture = renderTextureInt;
+                }
                 textureDirty = false;
             }
             return renderTextureInt;
@@ -61,7 +64,7 @@ namespace ModularWeapons2 {
             }
             return materialInt;
         }
-        public IEnumerable<Material> GetMaterialsForRenderCam() {
+        public IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
             /*
             Material mat1 = ThingDefOf.WoodLog.graphic.MatSingle;
             Material mat2 = new Material(ThingDefOf.Steel.graphic.MatSingle);
@@ -70,10 +73,33 @@ namespace ModularWeapons2 {
             yield return mat1;
             yield return mat2;
             */
-            yield return Props.baseGraphicData.Graphic.MatSingle;
+            yield return new MWCameraRenderer.MWCameraRequest(Props.baseGraphicData.Graphic.MatSingle, Vector2.zero, 0);
+            /*
             foreach(var i in attachedParts) {
                 yield return i.graphicData.Graphic.MatSingle;
             }
+            */
+            for(int i = 0; i < Props.partsMounts.Count; i++) {
+                if (attachedParts[i] == null) continue;
+                if (Props.partsMounts[i].adapterGraphic != null) {
+                    yield return new MWCameraRenderer.MWCameraRequest(
+                        Props.partsMounts[i].adapterGraphic.Graphic.MatSingle,
+                        Props.partsMounts[i].offset,
+                        Props.partsMounts[i].layerOrder
+                        );
+                }
+                yield return new MWCameraRenderer.MWCameraRequest(
+                    attachedParts[i].graphicData.Graphic.MatSingle,
+                    Props.partsMounts[i].offset,
+                    Props.partsMounts[i].layerOrder
+                    );
+            }
+        }
+
+        public void SetGraphicDirty(bool renderNow=true) {
+            textureDirty = true;
+            if (renderNow)
+                GetTexture();
         }
     }
 }

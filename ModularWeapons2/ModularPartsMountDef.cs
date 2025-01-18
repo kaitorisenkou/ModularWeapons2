@@ -5,7 +5,7 @@ namespace ModularWeapons2 {
     public class ModularPartsMountDef : Def {
         public List<MountAdapterClass> canAdaptAs = new List<MountAdapterClass>();
         [DefaultValue(true)]
-        public bool AllowEmpty = true;
-        public string EmptyLabel = "(Remove)";
+        public bool allowEmpty = true;
+        public string emptyLabel = "empty";
     }
 }

@@ -121,5 +121,4 @@ namespace ModularWeapons2 {
             return typeof(Texture2D).IsAssignableFrom(mat.mainTexture.GetType());
         }
     }
-
 }
