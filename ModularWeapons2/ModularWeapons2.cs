@@ -92,9 +92,7 @@ namespace ModularWeapons2 {
             MethodInfo targetMethod = AccessTools.Method(typeof(GlobalTextureAtlasManager), nameof(GlobalTextureAtlasManager.TryGetStaticTile));
             
             for (int i = 1; i < instructionList.Count; i++) {
-                Log.Message("hmm?");
                 if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo&& (MethodInfo)instructionList[i].operand == targetMethod) {
-                    Log.Message("ha!");
                     var branch = instructionList[i + 1];
                     while (true) {
                         i--;
