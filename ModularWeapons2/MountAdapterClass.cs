@@ -32,5 +32,18 @@ namespace ModularWeapons2 {
                 }
             }
         }
+        Vector2? normalizedOffsetInt = null;
+        public Vector2 NormalizedOffset {
+            get {
+                if (!normalizedOffsetInt.HasValue) {
+                    var result = offset.normalized;
+                    float max = Mathf.Max(offset.x, offset.y);
+                    result.x = Mathf.Abs(result.x) < 0.01f ? max : result.x;
+                    result.y = Mathf.Abs(result.y) < 0.01f ? max : result.y;
+                    normalizedOffsetInt = result;
+                }
+                return normalizedOffsetInt.Value;
+            }
+        }
     }
 }

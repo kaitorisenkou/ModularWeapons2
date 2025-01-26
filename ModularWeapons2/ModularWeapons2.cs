@@ -23,6 +23,10 @@ namespace ModularWeapons2 {
                 AccessTools.Method(typeof(StatWorker), nameof(StatWorker.StatOffsetFromGear), new Type[] { typeof(Thing), typeof(StatDef) }), 
                 transpiler:new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_StatOffsetFromGear), null));
 
+            harmony.Patch(
+                AccessTools.Method(typeof(StatWorker), "GearHasCompsThatAffectStat", new Type[] { typeof(Thing), typeof(StatDef) }),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_GearHasCompsThatAffectStat), null));
+
             MethodInfo GetIconForMethod = 
                 typeof(Widgets).GetMethods().First(t => 
                 t.Name == "GetIconFor" && t.GetParameters().Any(tt=>tt.ParameterType == typeof(Thing))
@@ -34,6 +38,26 @@ namespace ModularWeapons2 {
                 transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_TryGetTextureAtlasReplacementInfo), null));
 
             Log.Message("[MW2] Harmony patch complete!");
+
+            MW2Mod.statDefsShow.AddRange(new StatDef[] { 
+                StatDefOf.Mass, 
+                StatDefOf.MeleeDodgeChance, 
+                StatDefOf.MeleeHitChance 
+            });
+            MW2Mod.statCategoryShow.AddRange(new StatCategoryDef[]{
+                StatCategoryDefOf.Weapon,
+                StatCategoryDefOf.Weapon_Ranged,
+                StatCategoryDefOf.Weapon_Melee,
+                StatCategoryDefOf.EquippedStatOffsets
+            });
+            MW2Mod.lessIsBetter.AddRange(new string[]{
+                StatDefOf.Mass.label.CapitalizeFirst(),
+                StatDefOf.RangedWeapon_Cooldown.label.CapitalizeFirst(),
+                "Stat_Thing_Weapon_RangedWarmupTime_Desc".Translate(),
+                "RangedWarmupTime".Translate(),
+                StatDefOf.EquipDelay.label.CapitalizeFirst()
+            });
+            Log.Message("[MW2] Misc initializations complete!");
         }
 
         //前作よりコピペ 軽量化の余地あり？
@@ -56,7 +80,7 @@ namespace ModularWeapons2 {
                 }
             }
             if (patchCount < 1) {
-                Log.Error("[MW]patch failed : Patch_StatOffsetFromGear");
+                Log.Error("[MW2]patch failed : Patch_StatOffsetFromGear");
             }
             return instructionList;
         }
@@ -67,6 +91,18 @@ namespace ModularWeapons2 {
             }
             return 0;
         }
+
+        static void Postfix_GearHasCompsThatAffectStat(ref bool __result,Thing gear, StatDef stat) {
+            if (__result) {
+                return;
+            }
+            var comp = gear.TryGetComp<CompModularWeapon>();
+            if (comp == null) {
+                return;
+            }
+            __result |= Math.Abs(comp.GetEquippedOffset(stat)) > 1E-45f;
+        }
+
 
 
         static IEnumerable<CodeInstruction> Patch_GetIconFor(IEnumerable<CodeInstruction> instructions) {
@@ -81,7 +117,7 @@ namespace ModularWeapons2 {
                 }
             }
             if (patchCount < 1) {
-                Log.Error("[MW]patch failed : Patch_GetIconFor");
+                Log.Error("[MW2]patch failed : Patch_GetIconFor");
             }
             return instructionList;
         }
@@ -110,7 +146,7 @@ namespace ModularWeapons2 {
                 }
             }
             if (patchCount < 1) {
-                Log.Error("[MW]patch failed : Patch_TryGetTextureAtlasReplacementInfo");
+                Log.Error("[MW2]patch failed : Patch_TryGetTextureAtlasReplacementInfo");
             }
             return instructionList;
         }

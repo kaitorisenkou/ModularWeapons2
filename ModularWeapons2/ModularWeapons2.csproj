@@ -74,6 +74,7 @@
     <Compile Include="ModularPartsMountDef.cs" />
     <Compile Include="ModularPartsDef.cs" />
     <Compile Include="MountAdapterClass.cs" />
+    <Compile Include="MW2Mod.cs" />
     <Compile Include="MWDebugActions.cs" />
     <Compile Include="MWCameraRenderer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

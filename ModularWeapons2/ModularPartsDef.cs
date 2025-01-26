@@ -7,9 +7,10 @@ namespace ModularWeapons2 {
         public string labelShort;
         public ModularPartsMountDef attachedTo;
         public GraphicData graphicData;
+        public float GUIScale = 2f;
 
-        public List<StatModifier> StatOffsets;
-        public List<StatModifier> StatFactors;
-        public List<StatModifier> EquippedStatOffsets;
+        public List<StatModifier> StatOffsets = new List<StatModifier>();
+        public List<StatModifier> StatFactors = new List<StatModifier>();
+        public List<StatModifier> EquippedStatOffsets=new List<StatModifier>();
     }
 }
