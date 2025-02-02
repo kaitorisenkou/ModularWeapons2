@@ -69,6 +69,7 @@
     <Compile Include="CompProperties_ModularWeapon.cs" />
     <Compile Include="Dialog_Gunsmith.cs" />
     <Compile Include="Graphic_UniqueByComp.cs" />
+    <Compile Include="GunsmithPresetDef.cs" />
     <Compile Include="ICompUniqueGraphic.cs" />
     <Compile Include="ModularWeapons2.cs" />
     <Compile Include="ModularPartsMountDef.cs" />

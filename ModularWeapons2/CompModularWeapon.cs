@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Text;
 using UnityEngine;
 using Verse;
@@ -24,7 +25,10 @@ namespace ModularWeapons2 {
             attachedParts[index] = part;
             RefleshParts();
         }
-
+        public void SetParts(List<ModularPartsDef> parts) {
+            attachedParts = new List<ModularPartsDef>(parts);
+            RefleshParts();
+        }
         protected virtual void RefleshParts() {
             cachedEOStats =
                 attachedParts.Where(t=>t!=null && !t.EquippedStatOffsets.NullOrEmpty())
@@ -37,6 +41,69 @@ namespace ModularWeapons2 {
             textureDirty = true;
             if (renderNow)
                 GetTexture();
+        }
+
+        public IEnumerable<GunsmithPresetDef> AvailableGunsmithPresets
+            => DefDatabase<GunsmithPresetDef>.AllDefsListForReading.Where(t => t.weapon == this.parent.def);
+        public void RandomizePartsForPawn(Pawn owner) {
+            List<string> weaponTags = null;
+            if (owner.kindDef != null && owner.kindDef.weaponTags != null) {
+                weaponTags = owner.kindDef.weaponTags;
+            }
+            string parentDef = parent.def.defName;
+            IEnumerable<GunsmithPresetDef> allDefs = AvailableGunsmithPresets.Where(
+                t =>
+                t.weaponTags.NullOrEmpty() ||
+                (weaponTags != null && t.weaponTags.Any(t2 => weaponTags.Contains(t2)))
+                );
+            if (!allDefs.Any()) {
+                //TODO
+                Log.Message("[MW2]no presetDefs found: " + parentDef);
+                return;
+            }
+            var def = allDefs.RandomElement();
+            weaponOverrideLabel = def.customName ?? "";
+            var partsReplace = new ModularPartsDef[Props.partsMounts.Count];
+            foreach(var i in def.requiredParts) {
+                partsReplace[i.index] = i.partsDef;
+            }
+
+            int optionLength = def.optionalParts.Count();
+            int optionIndex = 0;
+            for (int i = 0; i < def.optionalPartsCount; i++) {
+                optionIndex = (int)Mathf.Repeat(optionIndex + UnityEngine.Random.Range(0, optionLength), optionLength);
+                var option = def.optionalParts[optionIndex];
+                partsReplace[option.index] = option.partsDef;
+            }
+            SetParts(partsReplace.ToList());
+        }
+        public override void Notify_Equipped(Pawn pawn) {
+            base.Notify_Equipped(pawn);
+            var owner = GetOwner(parent);
+            if (owner != null && !owner.IsPlayerControlled) {
+                RandomizePartsForPawn(owner);
+            }
+        }
+        static protected Pawn GetOwner(Thing thing) {
+            if (thing == null) {
+                return null;
+            }
+            int i = 0;
+            for (IThingHolder parent = thing.ParentHolder; parent != null; parent = parent.ParentHolder) {
+                i++;
+                if (parent is Pawn) {
+                    return parent as Pawn;
+                }
+            }
+            return null;
+        }
+
+        protected string weaponOverrideLabel = "";
+        public override string TransformLabel(string label) {
+            if (string.IsNullOrEmpty(weaponOverrideLabel)) {
+                return base.TransformLabel(label);
+            }
+            return weaponOverrideLabel;
         }
 
         public virtual float GetEquippedOffset(StatDef stat) {
@@ -90,6 +157,7 @@ namespace ModularWeapons2 {
         public override void Initialize(CompProperties props) {
             base.Initialize(props);
             attachedParts = Props.partsMounts.Select(t => t.defaultPart).ToList();
+            Log.Message("[MW2]parts count: " + attachedParts.Count);
             RefleshParts();
         }
         public override void PostExposeData() {

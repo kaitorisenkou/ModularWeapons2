@@ -1,7 +1,9 @@
-﻿using RimWorld;
+﻿using LudeonTK;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using Verse;
@@ -83,7 +85,7 @@ namespace ModularWeapons2 {
                 string labelString = "---";
                 Color labelColor = disabledGrayColor;
                 var addRect = new Rect(0, statusHeight, inRect.width, heightAdd).RightPart(0.125f);
-                var entry_Init= statEnrties_Initial.FirstOrFallback(t => t.Item1.LabelCap == entry_Current.Item1.LabelCap, (null, 0));
+                var entry_Init = statEnrties_Initial.FirstOrFallback(t => t.Item1.LabelCap == entry_Current.Item1.LabelCap, (null, 0));
                 if (entry_Current.Item2.HasValue) {
                     float valueDiff = entry_Current.Item2.Value - entry_Init.Item2.Value;
                     valueDiff = ProcessStatStyle(valueDiff, entry_Current.Item1.stat);
@@ -108,7 +110,7 @@ namespace ModularWeapons2 {
             viewRect_Status = new Rect(0, 0, inRect.width - 16f, statusHeight + 100f);
             //Widgets.Label(inRect, "statusHeight: " + statusHeight);
         }
-        Rect partsButtonRect = new Rect(0, 0, 48, 48);
+        Rect partsButtonRect = new Rect(0, 0, 56, 56);
         protected int selectedPartsIndex = -1;
         protected virtual void DoWeaponScreenContents(Rect inRect) {
             Widgets.DrawBox(inRect);
@@ -119,7 +121,7 @@ namespace ModularWeapons2 {
             GUI.DrawTexture(weaponRect, weaponMat.mainTexture);
             //var adapters = weaponComp.Props.partsMounts;
             //var attachedParts = weaponComp.attachedParts;
-            Vector2 buttonPosScale = inRect.size * new Vector2(0.4375f, -0.4375f);//0.5 - 0.0625
+            Vector2 buttonPosScale = inRect.size * new Vector2(0.40625f, -0.40625f);//0.5 - 0.125 + 0.03125
             Vector2 linePosScale = inRect.size / new Vector2(weaponDrawSize, -weaponDrawSize);
             var fontAnchor = Text.Anchor;
             Text.Anchor = TextAnchor.LowerLeft;
@@ -134,7 +136,7 @@ namespace ModularWeapons2 {
                 if (attachedParts[i] != null) {
                     Widgets.DrawTextureFitted(partsButtonRect, attachedParts[i].graphicData.Graphic.MatSingle.mainTexture, attachedParts[i].GUIScale);
                 }
-                Widgets.Label(partsButtonRect, adapters[i].mountDef.label.CapitalizeFirst());
+                Widgets.Label(partsButtonRect, adapters[i].mountDef.LabelShort.CapitalizeFirst());
                 if (Mouse.IsOver(partsButtonRect)) {
                     Widgets.DrawHighlight(partsButtonRect);
                 }
@@ -142,6 +144,7 @@ namespace ModularWeapons2 {
                     Widgets.DrawHighlightSelected(partsButtonRect);
                 }
                 if (Widgets.ButtonInvisible(partsButtonRect, true)) {
+                    //SoundDefOf.RowTabSelect.PlayOneShotOnCamera();
                     SoundDefOf.Click.PlayOneShotOnCamera();
                     selectedPartsIndex = selectedPartsIndex == i ? -1 : i;
                 }
@@ -150,20 +153,32 @@ namespace ModularWeapons2 {
             Text.Font = fontSize;
         }
         protected Vector2 scrollPos_PartsSelect = new Vector2();
-        protected Rect viewRect_PartsSelect = new Rect(0, 0, 0, 48);
+        protected Rect viewRect_PartsSelect = new Rect(0, 0, 0, 64);
         private ScrollPositioner scrollPositioner = new ScrollPositioner();
+        protected string partsTabLabel = "MW2_Parts".ToString();
+        protected string paintTabLabel = "MW2_Paint".ToString();
+        protected TabRecord partsTab = null;
+        protected TabRecord paintTab = null;
+        protected readonly Color colorFactor = new Color(1f, 1f, 1f, 0.5f);
         protected virtual void DoPartsDescContents(Rect inRect) {
+            if (partsTab == null) {
+                partsTab = new TabRecord(partsTabLabel, () => { SoundDefOf.RowTabSelect.PlayOneShotOnCamera(null); partsTab.selected = true; paintTab.selected = false; }, true); 
+                paintTab = new TabRecord(paintTabLabel, () => { SoundDefOf.RowTabSelect.PlayOneShotOnCamera(null); partsTab.selected = false; paintTab.selected = true; }, false);
+            }
             if (selectedPartsIndex < 0) {
-                Widgets.DrawBoxSolid(inRect, Color.yellow);
+                //Widgets.DrawBoxSolid(inRect, Color.yellow);
+                Widgets.Label(inRect, "Weapon base configulation is not implemented yet.\nPlease select an attatchment.");
             } else {
+                //ラベル
                 var fontSize = Text.Font;
+                var fontAnchor = Text.Anchor;
                 Text.Font = GameFont.Medium;
                 Widgets.Label(new Rect(inRect.x+4,inRect.y+2,inRect.width,inRect.height), adapters[selectedPartsIndex].mountDef.label.CapitalizeFirst());
 
-                var fontAnchor = Text.Anchor;
+                //パーツ選択
                 Text.Anchor = TextAnchor.LowerLeft;
                 Text.Font = GameFont.Tiny;
-                Rect partsSelectOuterRect = inRect.BottomPartPixels(64);
+                Rect partsSelectOuterRect = inRect.BottomPartPixels(80);
                 Widgets.DrawWindowBackground(partsSelectOuterRect);
                 partsSelectOuterRect = partsSelectOuterRect.ContractedBy(1, 0);
                 Widgets.ScrollHorizontal(partsSelectOuterRect, ref scrollPos_PartsSelect, viewRect_PartsSelect, 10f);
@@ -171,8 +186,8 @@ namespace ModularWeapons2 {
 
                 viewRect_PartsSelect.width = 0;
                 foreach(var part in adapters[selectedPartsIndex].GetAttatchableParts()) {
-                    Rect boxRect = new Rect(new Rect(viewRect_PartsSelect.xMax, viewRect_PartsSelect.y, 52, 52));
-                    Rect partButtonRect = new Rect(new Rect(viewRect_PartsSelect.xMax+2, viewRect_PartsSelect.y+1, 48, 50));
+                    Rect boxRect = new Rect(new Rect(viewRect_PartsSelect.xMax, viewRect_PartsSelect.y, 68, 68));
+                    Rect partButtonRect = new Rect(new Rect(viewRect_PartsSelect.xMax+2, viewRect_PartsSelect.y+1, 64, 66));
                     //Widgets.DrawBox(boxRect, 1);
                     Widgets.DrawWindowBackground(boxRect, new Color(1.5f, 1.5f, 1.5f));
                     if (part == null) {
@@ -210,12 +225,45 @@ namespace ModularWeapons2 {
                             }
                         }
                     }
-                    viewRect_PartsSelect.width += 52;
+                    viewRect_PartsSelect.width += 68;
                 }
                 viewRect_PartsSelect.width += 1000;
 
                 Widgets.EndScrollView();
                 scrollPositioner.ScrollHorizontally(ref scrollPos_PartsSelect, partsSelectOuterRect.size);
+
+                //パーツ概要テキスト
+                Text.Anchor = TextAnchor.UpperLeft;
+                Text.Font = GameFont.Small;
+                Rect descRect = new Rect(inRect) {
+                    y = inRect.y + Text.LineHeightOf(GameFont.Medium),
+                    height = inRect.height - Text.LineHeightOf(GameFont.Medium) - 80
+                };
+                Widgets.DrawWindowBackground(descRect, colorFactor);
+                if (attachedParts[selectedPartsIndex] != null) {
+                    //Widgets.DrawWindowBackground(descRect);
+                    attachedParts[selectedPartsIndex].DrawDescription(descRect, weaponComp);
+                } else {
+
+                }
+                
+                //タブ
+                var tabRect = inRect.TopPartPixels(Text.LineHeightOf(GameFont.Medium)).RightPart(0.25f);
+                tabRect.y += 1;
+                if (Widgets.ButtonImage(tabRect.RightPartPixels(tabRect.height), DevGUI.Close)) {
+                    SoundDefOf.TabOpen.PlayOneShotOnCamera();
+                    selectedPartsIndex = -1;
+                }
+                tabRect.x -= tabRect.height;
+                Text.Font = GameFont.Small;
+                Text.Anchor = TextAnchor.MiddleCenter;
+                paintTab.Draw(tabRect);
+                if (!paintTab.selected && Widgets.ButtonInvisible(tabRect, true)) paintTab.clickedAction();
+                tabRect.x -= tabRect.width;
+                partsTab.Draw(tabRect);
+                if (!partsTab.selected && Widgets.ButtonInvisible(tabRect, true)) partsTab.clickedAction();
+
+                //おかたづけ
                 Text.Anchor = fontAnchor;
                 Text.Font = fontSize;
             }
