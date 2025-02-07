@@ -17,7 +17,7 @@ namespace ModularWeapons2 {
         public List<StatModifier> EquippedStatOffsets=new List<StatModifier>();
 
         public List<ThingDefCountClass> costList = new List<ThingDefCountClass>();
-        public float stuffCost = 0;
+        public int stuffCost = 0;
 
         protected Texture2D Texture {
             get {
@@ -40,11 +40,32 @@ namespace ModularWeapons2 {
             //Widgets.Label(rectCenter.ContractedBy(4f), GetStatChangesString(weapon).ToString());
             DrawStatChanges(rectCenter.ContractedBy(4f), weapon);
             Widgets.DrawWindowBackground(rectRight, colorFactor);
-            Widgets.Label(rectRight.ContractedBy(4f), "required materials will be here");
+            //Widgets.Label(rectRight.ContractedBy(4f), "required materials will be here");
+            DrawCostList(rectRight.ContractedBy(4f), weapon);
         }
 
         protected virtual void DrawCostList(Rect rect, CompModularWeapon weapon = null) {
-
+            Listing_Standard listingStandard = new Listing_Standard();
+            float lineHeight = Text.LineHeightOf(GameFont.Medium);
+            listingStandard.Begin(rect);
+            if (stuffCost > 0) {
+                var rectLine = listingStandard.GetRect(lineHeight);
+                var stuff= weapon?.parent.Stuff ?? ThingDefOf.Cloth;
+                Widgets.DrawTextureFitted(rectLine.LeftPartPixels(lineHeight), stuff.graphic.MatSingle.mainTexture, 1f);
+                rectLine.x += lineHeight;
+                Widgets.Label(rectLine, " x" + stuffCost);
+            }
+            foreach(var i in costList) {
+                var rectLine = listingStandard.GetRect(lineHeight);
+                var stuff = i.thingDef;
+                Widgets.DrawTextureFitted(rectLine.LeftPartPixels(lineHeight), stuff.graphic.MatSingle.mainTexture, 1f);
+                rectLine.x += lineHeight;
+                Widgets.Label(rectLine, " x" + i.count);
+            }
+            listingStandard.End();
+        }
+        protected ThingDef GetWeaponStuff(CompModularWeapon weapon) {
+            return weapon?.parent.Stuff ?? ThingDefOf.Cloth;
         }
 
         protected virtual void DrawStatChanges(Rect rect, CompModularWeapon weapon = null) {

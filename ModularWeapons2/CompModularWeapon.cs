@@ -18,16 +18,20 @@ namespace ModularWeapons2 {
             }
         }
         protected List<ModularPartsDef> attachedParts;
+        protected List<ModularPartsDef> attachedParts_buffer;
         public IReadOnlyList<ModularPartsDef> AttachedParts {
             get => attachedParts;
         }
-        public void SetPart(int index,ModularPartsDef part) {
+        public virtual void SetPart(int index,ModularPartsDef part) {
             attachedParts[index] = part;
             RefleshParts();
         }
-        public void SetParts(List<ModularPartsDef> parts) {
+        public virtual void SetParts(List<ModularPartsDef> parts) {
             attachedParts = new List<ModularPartsDef>(parts);
             RefleshParts();
+        }
+        public virtual void SetPartsWithBuffer() {
+            SetParts(attachedParts_buffer);
         }
         protected virtual void RefleshParts() {
             cachedEOStats =
@@ -35,12 +39,61 @@ namespace ModularWeapons2 {
                 .SelectMany(t1 => t1.EquippedStatOffsets.Select(t2 => (t2.stat, t2.value)))
                 .GroupBy(t1 => t1.stat)
                 .Select(t1 => (t1.Key, t1.Sum(t2 => t2.value)));
+            requestCache = null;
+            SetGraphicDirty();
         }
 
-        public void SetGraphicDirty(bool renderNow = true) {
-            textureDirty = true;
-            if (renderNow)
-                GetTexture();
+        public virtual void BufferCurrent(bool overrideBuffer = false) {
+            if (overrideBuffer || attachedParts_buffer.NullOrEmpty()) {
+                attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
+                //attachedParts_buffer = attachedParts.ListFullCopy();
+            } else {
+                var tmp = attachedParts_buffer;
+                attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
+                SetParts(tmp);
+            }
+        }
+        public virtual void RevertToBuffer() {
+            if (attachedParts_buffer.NullOrEmpty()) {
+                Log.Warning("[MW2] RevertToBuffer() ran, but buffer is null!");
+                return;
+            }
+            SetParts(attachedParts_buffer);
+        }
+        public virtual IEnumerable<(ThingDef, int)> GetIngredient_Current() {
+            return sorted_GetIngredient(attachedParts);
+        }
+        public virtual IEnumerable<(ThingDef, int)> GetIngredient_Buffer() {
+            return sorted_GetIngredient(attachedParts_buffer);
+        }
+        IEnumerable<(ThingDef, int)> requestCache = null;
+        public virtual IEnumerable<(ThingDef,int)> GetRequiredIngredients() {
+            if (requestCache == null) {
+                requestCache = int_GetIngredient(attachedParts_buffer)
+                    .Concat(int_GetIngredient_minus(attachedParts))
+                    .GroupBy(t => t.Item1)
+                    .Select(t => (t.Key, t.Sum(t2 => t2.Item2)));
+                //Log.Message("[MW2] ingredients cached");
+            }
+            return requestCache;
+        }
+        IEnumerable<(ThingDef, int)> sorted_GetIngredient(List<ModularPartsDef> parts) {
+            return int_GetIngredient(parts)
+                .GroupBy(t => t.Item1)
+                .Select(t => (t.Key, t.Sum(t2 => t2.Item2)));
+        }
+        IEnumerable<(ThingDef, int)> int_GetIngredient(List<ModularPartsDef> parts) {
+            foreach (var i in parts) {
+                if (i == null)
+                    continue;
+                yield return (parent.Stuff ?? ThingDefOf.Steel, i.stuffCost);
+                foreach (var j in i.costList) {
+                    yield return (j.thingDef, j.count);
+                }
+            }
+        }
+        IEnumerable<(ThingDef, int)> int_GetIngredient_minus(List<ModularPartsDef> parts) {
+            return int_GetIngredient(parts).Select(t => (t.Item1, -t.Item2));
         }
 
         public IEnumerable<GunsmithPresetDef> AvailableGunsmithPresets
@@ -169,7 +222,7 @@ namespace ModularWeapons2 {
         bool textureDirty;
         public virtual Texture GetTexture() {
             if (renderTextureInt == null) {
-                var texture = Props.baseGraphicData.Graphic.MatSingle.mainTexture;
+                var texture = Props.baseGraphicData.Graphic.MatSingle?.mainTexture;
                 renderTextureInt = new RenderTexture(texture.width*2, texture.height*2, 32, RenderTextureFormat.ARGB32);
                 textureDirty = true;
             }
@@ -224,6 +277,17 @@ namespace ModularWeapons2 {
                     Props.partsMounts[i].offset,
                     Props.partsMounts[i].layerOrder
                     );
+            }
+        }
+
+        public void SetGraphicDirty(bool renderNow = true) {
+            textureDirty = true;
+            if (renderNow) {
+                if (UnityData.IsInMainThread) {
+                    GetTexture();
+                } else {
+                    LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, null);
+                }
             }
         }
     }

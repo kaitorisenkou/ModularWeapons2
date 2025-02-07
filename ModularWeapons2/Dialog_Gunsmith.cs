@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 using Verse.Noise;
 using Verse.Sound;
 using static HarmonyLib.Code;
@@ -42,9 +43,69 @@ namespace ModularWeapons2 {
             adapters = weaponComp.Props.partsMounts;
             attachedParts = weaponComp.AttachedParts;
             this.worker = worker;
+        }
+        public override void PostOpen() {
+            base.PostOpen();
+            forcePause = true;
+            closeOnAccept = false;
+            closeOnCancel = false;
+            closeOnClickedOutside = false;
+
             statEnrties_Initial = GetStatEnrties();
             statEnrties_Current = GetStatEnrties();
+
+            weaponComp.BufferCurrent(overrideBuffer: true);
         }
+        bool canceled = false;
+        public override void PostClose() {
+            base.PostClose();
+            if (canceled) {
+                weaponComp.RevertToBuffer();
+            } else {
+                if (gunsmithStation != null) {
+                    weaponComp.BufferCurrent();
+                    var costs = weaponComp.GetRequiredIngredients();
+                    var job = JobMaker.MakeJob(MW2DefOf.ConsumeIngredientsForGunsmith);
+                    var queueA = job.GetTargetQueue(TargetIndex.A);
+                    job.SetTarget(TargetIndex.B, weaponThing);
+                    job.SetTarget(TargetIndex.C, gunsmithStation);
+                    var countQueue = new List<int>();
+                    bool error = false;
+                    if (costs != null) {
+                        foreach (var i in costs) {
+                            var queueAdd = FindIngredients(i.Item1, i.Item2);
+                            queueA.AddRange(queueAdd.Select(t => t.Item1));
+                            countQueue.AddRange(queueAdd.Select(t => t.Item2));
+                            if (queueAdd.Sum(t => t.Item2) < i.Item2) {
+                                error = true;
+                                break;
+                            }
+                        }
+                        job.countQueue = countQueue;
+                    }
+                    if (!error) {
+                        worker.jobs.TryTakeOrderedJob(job);
+                    } else {
+                        Log.Warning("[ModularWeapons] no ingredients for gunsmith!");
+                    }
+                } else if(DebugSettings.godMode){
+
+                }
+            }
+        }
+        IEnumerable<(LocalTargetInfo, int)> FindIngredients(ThingDef thingDef, int count) {
+            var things = worker.Map.listerThings.ThingsOfDef(thingDef).OrderBy(t => t.Position.DistanceToSquared(worker.Position)).ToArray();
+            int i = 0;
+            int c = Mathf.Max(0, count);
+            for (; c > 0 && things.Length > i; i++) {
+                if (worker.CanReach(things[i], PathEndMode.Touch, Danger.Some, false, false, TraverseMode.ByPawn) && !things[i].IsForbidden(worker)) {
+                    yield return (things[i], Mathf.Clamp(things[i].stackCount, 0, c));
+                    c -= things[i].stackCount;
+                }
+            }
+            yield break;
+        }
+
         public override void DoWindowContents(Rect inRect) {
             CalcRectSizes(inRect);
             DoHeadContents(headRect);
@@ -270,9 +331,30 @@ namespace ModularWeapons2 {
         }
         protected virtual void DoLowerContents(Rect inRect) {
             Widgets.DrawBox(inRect);
-            Widgets.Label(inRect, "Material requirements will be displayed here");
-            var acceptButtonRect = inRect.RightPart(0.2f).GetInnerRect();
+            var cancelButtonRect = inRect.LeftPart(0.125f).ContractedBy(6f);
+            if (Widgets.ButtonText(cancelButtonRect, "Cancel".Translate(), true, true, true, null)) {
+                canceled = true;
+                this.Close(true);
+            }
+            var fontAnchor = Text.Anchor;
+            Text.Anchor = TextAnchor.MiddleLeft;
+            var ingredientsRect = inRect.RightPart(0.875f);
+            ingredientsRect.x += 12f;
+            foreach (var i in weaponComp.GetRequiredIngredients()) {
+                int ingredientCount = Mathf.Max(0, i.Item2 * -1);
+                if (ingredientCount < 1) continue;
+                ingredientsRect.width = 32;
+                Widgets.DrawTextureFitted(ingredientsRect, i.Item1.graphic.MatSingle.mainTexture, 1);
+                ingredientsRect.x += ingredientsRect.width;
+                string text = string.Format(" x{0}  " , ingredientCount);
+                ingredientsRect.width = Text.CalcSize(text).x;
+                Widgets.Label(ingredientsRect, text);
+                ingredientsRect.x += ingredientsRect.width;
+            }
+            Text.Anchor = fontAnchor;
+            var acceptButtonRect = inRect.RightPart(0.125f).ContractedBy(6f);
             if (Widgets.ButtonText(acceptButtonRect,"Accept".Translate(),true, true, true, null)) {
+                canceled = false;
                 this.Close(true);
             }
         }

@@ -11,6 +11,7 @@ using System.Reflection.Emit;
 using System.Reflection;
 using UnityEngine;
 using Verse.Noise;
+using Verse.AI;
 
 namespace ModularWeapons2 {
     [StaticConstructorOnStartup]
@@ -36,6 +37,27 @@ namespace ModularWeapons2 {
             harmony.Patch(
                 AccessTools.Method(typeof(Graphic), nameof(Graphic.TryGetTextureAtlasReplacementInfo)),
                 transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_TryGetTextureAtlasReplacementInfo), null));
+
+            //Type PlaceHauledThingInCell_type = AccessTools.TypeByName("Verse.AI.Toils_Haul+<>c__DisplayClass8_0");
+            var types_PlaceHauledThingInCell = typeof(Toils_Haul).GetNestedTypes(AccessTools.all);
+            bool isFound_PlaceHauledThingInCell = false;
+            foreach (var i in types_PlaceHauledThingInCell) {
+                //Log.Message(i.Name);
+                MethodInfo method = i.FirstMethod(t => t.Name.Contains("PlaceHauledThingInCell"));
+                if (method != null) {
+                    harmony.Patch(method, null, null,
+                        new HarmonyMethod(AccessTools.Method(typeof(ModularWeapons2), nameof(Patch_PlaceHauledThingInCell), null)));
+                    isFound_PlaceHauledThingInCell = true;
+                    break;
+                }
+            }
+            if (!isFound_PlaceHauledThingInCell) {
+                Log.Error("[MW2] Inner method of PlaceHauledThingInCell not found! ("+ types_PlaceHauledThingInCell.Length.ToString()+")");
+            }
+
+            harmony.Patch(
+                AccessTools.Method(typeof(VerbTracker), "CreateVerbTargetCommand", new Type[] { typeof(Thing), typeof(Verb) }),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_CreateVerbTargetCommand), null));
 
             Log.Message("[MW2] Harmony patch complete!");
 
@@ -150,9 +172,41 @@ namespace ModularWeapons2 {
             }
             return instructionList;
         }
-
         static bool IsTexture2D(Material mat) {
             return typeof(Texture2D).IsAssignableFrom(mat.mainTexture.GetType());
+        }
+
+
+        static IEnumerable<CodeInstruction> Patch_PlaceHauledThingInCell(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            FieldInfo fieldInfo = AccessTools.Field(typeof(JobDefOf), nameof(JobDefOf.DoBill));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Ldsfld && (FieldInfo)instructionList[i].operand == fieldInfo && instructionList[i + 1].opcode == OpCodes.Beq_S) {
+                    var copy = instructionList.GetRange(i - 3, 5);
+                    copy[3] = copy[3].Clone();
+                    copy[3].operand = AccessTools.Field(typeof(MW2DefOf), nameof(MW2DefOf.ConsumeIngredientsForGunsmith));
+                    instructionList.InsertRange(i + 2, copy);
+                    patchCount++;
+                    break;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : PlaceHauledThingInCell_Patch");
+            }
+            return instructionList;
+        }
+
+
+
+        static void Postfix_CreateVerbTargetCommand(ref Command_VerbTarget __result, Thing ownerThing) {
+            var comp = ownerThing.TryGetComp<CompModularWeapon>();
+            if (comp == null) {
+                return;
+            }
+            Material mat = ownerThing.Graphic.MatSingleFor(ownerThing);
+            __result.icon = mat.mainTexture;
+            __result.iconDrawScale = ownerThing.Graphic.drawSize.x;
         }
     }
 }
