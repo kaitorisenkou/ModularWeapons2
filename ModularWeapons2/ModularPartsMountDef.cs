@@ -7,6 +7,7 @@ namespace ModularWeapons2 {
         [DefaultValue(true)]
         public bool allowEmpty = true;
         public string emptyLabel = "empty";
+        public string emptyDescription = "";
 
         public string labelShort = "";
         public string LabelShort {

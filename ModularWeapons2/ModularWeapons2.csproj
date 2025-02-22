@@ -74,6 +74,7 @@
     <Compile Include="ICompUniqueGraphic.cs" />
     <Compile Include="JobDriver_ConsumeIngredientsForGunsmith.cs" />
     <Compile Include="JobDriver_UseGunsmithStation.cs" />
+    <Compile Include="ModularPartEffects.cs" />
     <Compile Include="ModularWeapons2.cs" />
     <Compile Include="ModularPartsMountDef.cs" />
     <Compile Include="ModularPartsDef.cs" />
@@ -82,6 +83,7 @@
     <Compile Include="MW2Mod.cs" />
     <Compile Include="MWDebugActions.cs" />
     <Compile Include="MWCameraRenderer.cs" />
+    <Compile Include="PartsAttachHelperClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

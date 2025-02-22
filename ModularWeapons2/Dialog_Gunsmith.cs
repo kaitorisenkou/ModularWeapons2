@@ -3,6 +3,7 @@ using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -29,7 +30,7 @@ namespace ModularWeapons2 {
         public Graphic weaponGraphic;
         public Material weaponMat;
         protected float weaponDrawSize = 1f;
-        protected List<MountAdapterClass> adapters;
+        protected IReadOnlyList<MountAdapterClass> adapters;
         protected IReadOnlyList<ModularPartsDef> attachedParts;
         public Thing gunsmithStation;
         public Pawn worker;
@@ -40,7 +41,7 @@ namespace ModularWeapons2 {
             weaponMat = weaponGraphic.MatSingleFor(weaponThing);
             weaponDrawSize = weaponGraphic.drawSize.y;
             this.gunsmithStation = gunsmithStation;
-            adapters = weaponComp.Props.partsMounts;
+            adapters = weaponComp.MountAdapters;
             attachedParts = weaponComp.AttachedParts;
             this.worker = worker;
         }
@@ -173,6 +174,7 @@ namespace ModularWeapons2 {
         }
         Rect partsButtonRect = new Rect(0, 0, 56, 56);
         protected int selectedPartsIndex = -1;
+        //protected MountAdapterClass selectedMount = null;
         protected virtual void DoWeaponScreenContents(Rect inRect) {
             Widgets.DrawBox(inRect);
             Rect weaponRect = new Rect(inRect) {
@@ -188,26 +190,28 @@ namespace ModularWeapons2 {
             Text.Anchor = TextAnchor.LowerLeft;
             var fontSize = Text.Font;
             Text.Font = GameFont.Tiny;
-            for (int i = 0; i < adapters.Count; i++) {
-                partsButtonRect.center = inRect.center + adapters[i].NormalizedOffset * buttonPosScale;
+            for(int i=0;i<adapters.Count;i++) {
+                if (i >= adapters.Count || i >= attachedParts.Count) {
+                    break;
+                }
+                var adapter = adapters[i];
+                partsButtonRect.center = inRect.center + adapter.NormalizedOffsetForUI * buttonPosScale;
                 if (selectedPartsIndex == i) {
-                    Widgets.DrawLine(inRect.center + adapters[i].offset * linePosScale, partsButtonRect.center, Color.white, 1f);
+                    Widgets.DrawLine(inRect.center + (adapter.offset + weaponComp.AdapterTextureOffset[i]) * linePosScale, partsButtonRect.center, Color.white, 1f);
+                    Widgets.DrawHighlightSelected(partsButtonRect);
                 }
                 Widgets.DrawWindowBackground(partsButtonRect);
                 if (attachedParts[i] != null) {
                     Widgets.DrawTextureFitted(partsButtonRect, attachedParts[i].graphicData.Graphic.MatSingle.mainTexture, attachedParts[i].GUIScale);
                 }
-                Widgets.Label(partsButtonRect, adapters[i].mountDef.LabelShort.CapitalizeFirst());
+                Widgets.Label(partsButtonRect, adapter.mountDef.LabelShort.CapitalizeFirst());
                 if (Mouse.IsOver(partsButtonRect)) {
                     Widgets.DrawHighlight(partsButtonRect);
                 }
-                if (selectedPartsIndex == i) {
-                    Widgets.DrawHighlightSelected(partsButtonRect);
-                }
                 if (Widgets.ButtonInvisible(partsButtonRect, true)) {
-                    //SoundDefOf.RowTabSelect.PlayOneShotOnCamera();
                     SoundDefOf.Click.PlayOneShotOnCamera();
                     selectedPartsIndex = selectedPartsIndex == i ? -1 : i;
+                    //selectedMount = attachedParts[i];
                 }
             }
             Text.Anchor = fontAnchor;
@@ -236,7 +240,7 @@ namespace ModularWeapons2 {
                 Text.Font = GameFont.Medium;
                 Widgets.Label(new Rect(inRect.x+4,inRect.y+2,inRect.width,inRect.height), adapters[selectedPartsIndex].mountDef.label.CapitalizeFirst());
 
-                //パーツ選択
+                //下部のパーツ選択ボタン
                 Text.Anchor = TextAnchor.LowerLeft;
                 Text.Font = GameFont.Tiny;
                 Rect partsSelectOuterRect = inRect.BottomPartPixels(80);
@@ -249,9 +253,8 @@ namespace ModularWeapons2 {
                 foreach(var part in adapters[selectedPartsIndex].GetAttatchableParts()) {
                     Rect boxRect = new Rect(new Rect(viewRect_PartsSelect.xMax, viewRect_PartsSelect.y, 68, 68));
                     Rect partButtonRect = new Rect(new Rect(viewRect_PartsSelect.xMax+2, viewRect_PartsSelect.y+1, 64, 66));
-                    //Widgets.DrawBox(boxRect, 1);
                     Widgets.DrawWindowBackground(boxRect, new Color(1.5f, 1.5f, 1.5f));
-                    if (part == null) {
+                    if (part == null) {//パーツ削除ボタン
                         Widgets.Label(partButtonRect, adapters[selectedPartsIndex].mountDef.emptyLabel.CapitalizeFirst());
                         if (attachedParts[selectedPartsIndex] == null) {
                             Widgets.DrawHighlightSelected(boxRect);
@@ -261,13 +264,12 @@ namespace ModularWeapons2 {
                             }
                             if (Widgets.ButtonInvisible(boxRect, true)) {
                                 SoundDefOf.Click.PlayOneShotOnCamera();
-                                //attachedParts[selectedPartsIndex] = null;
-                                weaponComp.SetPart(selectedPartsIndex, null);
+                                //weaponComp.SetPart(selectedPartsIndex, null);
+                                weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(null));
                                 OnPartsChanged();
                             }
                         }
-
-                    } else {
+                    } else {//パーツ装着ボタン
                         var texture = part.graphicData.Graphic.MatSingle.mainTexture;
                         //Rect textureRect = new Rect(0, 0, texture.width, texture.height) { center = partButtonRect.center };
                         Widgets.DrawTextureFitted(partButtonRect, texture, part.GUIScale);
@@ -280,8 +282,8 @@ namespace ModularWeapons2 {
                             }
                             if (Widgets.ButtonInvisible(boxRect, true)) {
                                 SoundDefOf.Click.PlayOneShotOnCamera();
-                                //attachedParts[selectedPartsIndex] = part;
-                                weaponComp.SetPart(selectedPartsIndex, part);
+                                //weaponComp.SetPart(selectedPartsIndex, part);
+                                weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(part));
                                 OnPartsChanged();
                             }
                         }
@@ -305,7 +307,7 @@ namespace ModularWeapons2 {
                     //Widgets.DrawWindowBackground(descRect);
                     attachedParts[selectedPartsIndex].DrawDescription(descRect, weaponComp);
                 } else {
-
+                    adapters[selectedPartsIndex].DrawEmptyDescription(descRect, weaponComp);
                 }
                 
                 //タブ
@@ -451,6 +453,8 @@ namespace ModularWeapons2 {
             weaponComp.SetGraphicDirty(); 
             weaponMat = weaponGraphic.MatSingleFor(weaponThing);
             statEnrties_Current = GetStatEnrties();
+            adapters = weaponComp.MountAdapters;
+            attachedParts = weaponComp.AttachedParts;
         }
     }
 }

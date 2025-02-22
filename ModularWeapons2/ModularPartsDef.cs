@@ -1,6 +1,5 @@
 ﻿using RimWorld;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using Verse;
 using static HarmonyLib.Code;
@@ -12,12 +11,42 @@ namespace ModularWeapons2 {
         public GraphicData graphicData;
         public float GUIScale = 2f;
 
-        public List<StatModifier> StatOffsets = new List<StatModifier>();
-        public List<StatModifier> StatFactors = new List<StatModifier>();
-        public List<StatModifier> EquippedStatOffsets=new List<StatModifier>();
 
         public List<ThingDefCountClass> costList = new List<ThingDefCountClass>();
         public int stuffCost = 0;
+
+        public ModularPartEffects effects;
+
+        public List<StatModifier> StatOffsets {
+            get {
+                if (effects.statOffsets == null) effects.statOffsets = new List<StatModifier>();
+                return effects.statOffsets;
+            }
+        }
+        public List<StatModifier> StatFactors {
+            get {
+                if (effects.statFactors == null) effects.statFactors = new List<StatModifier>();
+                return effects.statFactors;
+            }
+        }
+        public List<StatModifier> EquippedStatOffsets {
+            get {
+                if (effects.equippedStatOffsets == null) effects.equippedStatOffsets = new List<StatModifier>();
+                return effects.equippedStatOffsets;
+            }
+        }
+        public List<MountAdapterClass> AdditionalAdapters {
+            get {
+                if (effects.additionalAdapters == null) effects.additionalAdapters = new List<MountAdapterClass>();
+                return effects.additionalAdapters;
+            }
+        }
+        public List<Tool> Tools {
+            get {
+                if (effects.tools == null) effects.tools = new List<Tool>();
+                return effects.tools;
+            }
+        }
 
         protected Texture2D Texture {
             get {
@@ -73,7 +102,7 @@ namespace ModularWeapons2 {
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.verticalSpacing = -6f;
             listingStandard.Begin(rect);
-            foreach (var i in GetStatChanges(weapon)) {
+            foreach (var i in effects.GetStatChangeTexts(weapon)) {
                 GUI.color = i.Item2;
                 listingStandard.Label(i.Item1);
             }
@@ -81,48 +110,6 @@ namespace ModularWeapons2 {
             GUI.color = tmpColor;
         }
 
-        protected virtual IEnumerable<(string,Color)> GetStatChanges(CompModularWeapon weapon = null) {
-            var builder = new StringBuilder();
-            Color color = Color.white;
-            foreach(var i in StatOffsets) {
-                builder.Clear();
-                float statValue = (i.stat.ToStringStyleUnfinalized.ToString().Contains("Percent") ? i.value * 100 : i.value);
-                if (statValue > 0) { builder.Append("+"); }
-                builder.Append(statValue.ToString());
-                builder.Append(" ");
-                builder.Append(i.stat.label);
-                if (i.value > 0 ^ !MW2Mod.lessIsBetter.Contains(i.stat.label.CapitalizeFirst())) {
-                    color = Color.red;
-                } else {
-                    color = Color.green;
-                }
-                yield return (builder.ToString(), color);
-            }
-            foreach (var i in StatFactors) {
-                builder.Clear();
-                if (i.value > 0) builder.Append("+");
-                builder.Append(i.value.ToStringPercent());
-                builder.Append(" ");
-                builder.Append(i.stat.label);
-                if (i.value > 0 ^ !MW2Mod.lessIsBetter.Contains(i.stat.label.CapitalizeFirst())) {
-                    color = Color.red;
-                } else {
-                    color = Color.green;
-                }
-                yield return (builder.ToString(), color);
-            }
-            foreach (var i in EquippedStatOffsets) {
-                builder.Clear();
-                builder.Append(i.value.ToStringByStyle(i.stat.ToStringStyleUnfinalized, ToStringNumberSense.Offset));
-                builder.Append(" ");
-                builder.Append(i.stat.label);
-                if (i.value > 0 ^ !MW2Mod.lessIsBetter.Contains(i.stat.label.CapitalizeFirst())) {
-                    color = Color.red;
-                } else {
-                    color = Color.green;
-                }
-                yield return (builder.ToString(), color);
-            }
-        }
+        
     }
 }

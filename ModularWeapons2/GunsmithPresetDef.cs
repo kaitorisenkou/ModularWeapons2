@@ -8,12 +8,14 @@ namespace ModularWeapons2 {
         public ThingDef weapon;
         [NoTranslate]
         public List<string> weaponTags;
-        public List<PartsDefIndexPair> requiredParts = new List<PartsDefIndexPair>();
+        public List<PartsAttachHelperClass> requiredParts = new List<PartsAttachHelperClass>();
         public int optionalPartsCount = 1;
-        public List<PartsDefIndexPair> optionalParts = new List<PartsDefIndexPair>();
+        public List<PartsAttachHelperClass> optionalParts = new List<PartsAttachHelperClass>();
     }
+    /*
     public class PartsDefIndexPair {
         public ModularPartsDef partsDef = null;
         public int index = 0;
     }
+    */
 }

@@ -11,36 +11,166 @@ using static HarmonyLib.Code;
 using static UnityEngine.Random;
 
 namespace ModularWeapons2 {
-    public class CompModularWeapon : ThingComp, ICompUniqueGraphic {
+    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner {
         public CompProperties_ModularWeapon Props {
             get {
                 return (CompProperties_ModularWeapon)this.props;
             }
         }
-        protected List<ModularPartsDef> attachedParts;
-        protected List<ModularPartsDef> attachedParts_buffer;
+        //初期化
+        public override void Initialize(CompProperties props) {
+            base.Initialize(props);
+            //attachedParts = Props.partsMounts.Select(t => t.defaultPart).ToList();
+            //Log.Message("[MW2]parts count: " + attachedParts.Count);
+            if (verbTracker == null)
+                verbTracker = new VerbTracker(this);
+            SetParts(Props.defaultParts);
+            RefleshParts();
+        }
+        //セーブ
+        public override void PostExposeData() {
+            base.PostExposeData();
+            Scribe_Collections.Look(ref attachedParts, "attachedParts", true, LookMode.Def);
+        }
+        static protected Pawn GetOwner(Thing thing) {
+            if (thing == null) {
+                return null;
+            }
+            int i = 0;
+            for (IThingHolder parent = thing.ParentHolder; parent != null; parent = parent.ParentHolder) {
+                i++;
+                if (parent is Pawn) {
+                    return parent as Pawn;
+                }
+            }
+            return null;
+        }
+        //NPC用ランダマイズ
+        bool onceEquipped;
+        public override void Notify_Equipped(Pawn pawn) {
+            base.Notify_Equipped(pawn);
+            if (!onceEquipped) {
+                var owner = GetOwner(parent);
+                if (owner != null && !owner.IsPlayerControlled) {
+                    RandomizePartsForPawn(owner);
+                }
+                onceEquipped = true;
+            }
+        }
+        //武器の名前
+        protected string weaponOverrideLabel = "";
+        public override string TransformLabel(string label) {
+            if (string.IsNullOrEmpty(weaponOverrideLabel)) {
+                return base.TransformLabel(label);
+            }
+            return weaponOverrideLabel;
+        }
+
+        //------------------------------------//
+        //      ここからパーツ脱着関連        //
+        //------------------------------------//
+        protected List<PartsAttachHelper> attachHelpers = new List<PartsAttachHelper>();
+        public IReadOnlyList<MountAdapterClass> MountAdapters {
+            get {
+                if (mountAdapters.NullOrEmpty())
+                    mountAdapters = Props.partsMounts.Select(t => (MountAdapterClass)t).ToList();
+                return mountAdapters;
+            }
+        }
+        protected List<MountAdapterClass> mountAdapters = new List<MountAdapterClass>();
+        protected List<Vector2> adapterTextureOffset = new List<Vector2>();
+        public IReadOnlyList<Vector2> AdapterTextureOffset {
+            get => adapterTextureOffset;
+        }
+        protected List<ModularPartsDef> attachedParts = Enumerable.Empty<ModularPartsDef>().ToList();
+        protected List<ModularPartsDef> attachedParts_buffer = Enumerable.Empty<ModularPartsDef>().ToList();
         public IReadOnlyList<ModularPartsDef> AttachedParts {
             get => attachedParts;
         }
-        public virtual void SetPart(int index,ModularPartsDef part) {
-            attachedParts[index] = part;
+        public virtual void SetPart(PartsAttachHelper helper) {
+            SetPartInt(helper);
+            RefleshParts();
+            return;
+        }
+        protected void SetPartInt(PartsAttachHelper helper) {
+            //attachedParts[index] = part;
+            if (attachHelpers == null) {
+                attachHelpers = new List<PartsAttachHelper>();
+            }
+            int index = attachHelpers.FirstIndexOf(t => t.CanReplacedTo(helper));
+            if (index >= 0) {
+                attachHelpers[index] = helper;
+            } else {
+                attachHelpers.Add(helper);
+            }
+            return;
+        }
+        public virtual void SetParts(List<PartsAttachHelper> helpers, bool reset = true) {
+            if (reset || attachHelpers == null) {
+                attachHelpers = new List<PartsAttachHelper>();
+            }
+            if (!helpers.NullOrEmpty()) {
+                //attachHelpers.AddRange(helpers);
+                foreach (var i in helpers) {
+                    SetPartInt(i);
+                }
+            }
             RefleshParts();
         }
-        public virtual void SetParts(List<ModularPartsDef> parts) {
-            attachedParts = new List<ModularPartsDef>(parts);
+        public virtual void SetParts(List<PartsAttachHelperClass> helpers, bool reset = true) {
+            if (reset || attachHelpers == null) {
+                attachHelpers = new List<PartsAttachHelper>();
+            }
+            if (!helpers.NullOrEmpty()) {
+                foreach (var i in helpers) {
+                    //attachHelpers.Add(i);
+                    SetPartInt(i);
+                }
+            }
             RefleshParts();
         }
         public virtual void SetPartsWithBuffer() {
-            SetParts(attachedParts_buffer);
+            //SetParts(attachedParts_buffer);
+            attachedParts = new List<ModularPartsDef>(attachedParts_buffer);
+            RefleshParts();
         }
         protected virtual void RefleshParts() {
-            cachedEOStats =
-                attachedParts.Where(t=>t!=null && !t.EquippedStatOffsets.NullOrEmpty())
-                .SelectMany(t1 => t1.EquippedStatOffsets.Select(t2 => (t2.stat, t2.value)))
-                .GroupBy(t1 => t1.stat)
-                .Select(t1 => (t1.Key, t1.Sum(t2 => t2.value)));
+            attachedParts = SolveAttachHelpers(attachHelpers);
+            if (attachedParts.NullOrEmpty()) {
+                cachedEOStats = Enumerable.Empty<(StatDef, float)>();
+            } else {
+                cachedEOStats =
+                    attachedParts.Where(t => t != null && !t.EquippedStatOffsets.NullOrEmpty())
+                    .SelectMany(t1 => t1.EquippedStatOffsets.Select(t2 => (t2.stat, t2.value)))
+                    .GroupBy(t1 => t1.stat)
+                    .Select(t1 => (t1.Key, t1.Sum(t2 => t2.value)));
+            }
             requestCache = null;
+            tools = null;
+            verbTracker.InitVerbsFromZero();
+            Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             SetGraphicDirty();
+        }
+        protected List<ModularPartsDef> SolveAttachHelpers(List<PartsAttachHelper> attachHelpers) {
+            mountAdapters = new List<MountAdapterClass>(Props.partsMounts);
+            MountAdapterClass.ResetAdaptersParent(Props.partsMounts);
+            int count = mountAdapters.Count;
+            adapterTextureOffset = Enumerable.Repeat(Vector2.zero, count).ToList();
+            List<ModularPartsDef> targetList = new ModularPartsDef[count].ToList();
+            for (int i = 0; i < count; i++) {
+                PartsAttachHelper helper = attachHelpers.LastOrDefault(t => t.CanAttachTo(mountAdapters[i]));
+                if (helper.partsDef != null) {
+                    var part = helper.partsDef;
+                    targetList[i] = part;
+                    var additionalAdapters = part.AdditionalAdapters;
+                    mountAdapters.AddRange(additionalAdapters);
+                    MountAdapterClass.ResetAdaptersParent(additionalAdapters, mountAdapters[i]);
+                    adapterTextureOffset.AddRange(additionalAdapters.Select(t => adapterTextureOffset[i] + mountAdapters[i].offset));
+                    targetList.AddRange(Enumerable.Repeat<ModularPartsDef>(null, additionalAdapters.Count));
+                    count += additionalAdapters.Count;
+                }
+            }
+            return targetList;
         }
 
         public virtual void BufferCurrent(bool overrideBuffer = false) {
@@ -50,7 +180,8 @@ namespace ModularWeapons2 {
             } else {
                 var tmp = attachedParts_buffer;
                 attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
-                SetParts(tmp);
+                //SetParts(tmp);
+                attachedParts = tmp;
             }
         }
         public virtual void RevertToBuffer() {
@@ -58,7 +189,7 @@ namespace ModularWeapons2 {
                 Log.Warning("[MW2] RevertToBuffer() ran, but buffer is null!");
                 return;
             }
-            SetParts(attachedParts_buffer);
+            attachedParts = new List<ModularPartsDef>(attachedParts_buffer);
         }
         public virtual IEnumerable<(ThingDef, int)> GetIngredient_Current() {
             return sorted_GetIngredient(attachedParts);
@@ -67,7 +198,7 @@ namespace ModularWeapons2 {
             return sorted_GetIngredient(attachedParts_buffer);
         }
         IEnumerable<(ThingDef, int)> requestCache = null;
-        public virtual IEnumerable<(ThingDef,int)> GetRequiredIngredients() {
+        public virtual IEnumerable<(ThingDef, int)> GetRequiredIngredients() {
             if (requestCache == null) {
                 requestCache = int_GetIngredient(attachedParts_buffer)
                     .Concat(int_GetIngredient_minus(attachedParts))
@@ -98,6 +229,7 @@ namespace ModularWeapons2 {
 
         public IEnumerable<GunsmithPresetDef> AvailableGunsmithPresets
             => DefDatabase<GunsmithPresetDef>.AllDefsListForReading.Where(t => t.weapon == this.parent.def);
+
         public void RandomizePartsForPawn(Pawn owner) {
             List<string> weaponTags = null;
             if (owner.kindDef != null && owner.kindDef.weaponTags != null) {
@@ -116,58 +248,37 @@ namespace ModularWeapons2 {
             }
             var def = allDefs.RandomElement();
             weaponOverrideLabel = def.customName ?? "";
-            var partsReplace = new ModularPartsDef[Props.partsMounts.Count];
-            foreach(var i in def.requiredParts) {
-                partsReplace[i.index] = i.partsDef;
-            }
-
+            //必須パーツ
+            var helpers = new List<PartsAttachHelperClass>(def.requiredParts);
+            //任意パーツ
             int optionLength = def.optionalParts.Count();
-            int optionIndex = 0;
-            for (int i = 0; i < def.optionalPartsCount; i++) {
-                optionIndex = (int)Mathf.Repeat(optionIndex + UnityEngine.Random.Range(0, optionLength), optionLength);
-                var option = def.optionalParts[optionIndex];
-                partsReplace[option.index] = option.partsDef;
+            HashSet<int> optionIndexes =
+                new int[def.optionalPartsCount]
+                .Select(t => UnityEngine.Random.Range(0, optionLength))
+                .ToHashSet();
+            foreach (var i in optionIndexes) {
+                helpers.Add(def.optionalParts[i]);
             }
-            SetParts(partsReplace.ToList());
-        }
-        public override void Notify_Equipped(Pawn pawn) {
-            base.Notify_Equipped(pawn);
-            var owner = GetOwner(parent);
-            if (owner != null && !owner.IsPlayerControlled) {
-                RandomizePartsForPawn(owner);
-            }
-        }
-        static protected Pawn GetOwner(Thing thing) {
-            if (thing == null) {
-                return null;
-            }
-            int i = 0;
-            for (IThingHolder parent = thing.ParentHolder; parent != null; parent = parent.ParentHolder) {
-                i++;
-                if (parent is Pawn) {
-                    return parent as Pawn;
-                }
-            }
-            return null;
+            SetParts(helpers);
         }
 
-        protected string weaponOverrideLabel = "";
-        public override string TransformLabel(string label) {
-            if (string.IsNullOrEmpty(weaponOverrideLabel)) {
-                return base.TransformLabel(label);
+
+        //------------------------------------//
+        //      パーツ脱着関連 ここまで       //
+        //------------------------------------//
+
+        protected ModularPartEffects GetPartEffectsAt(int index) {
+            if (attachedParts[index] == null) {
+                return mountAdapters[index].effectsWhenEmpty;
             }
-            return weaponOverrideLabel;
+            return attachedParts[index].effects;
         }
 
-        public virtual float GetEquippedOffset(StatDef stat) {
-            float value = 0;
-            foreach (var i in attachedParts) {
-                if (i?.EquippedStatOffsets == null) continue;
-                var mod = i.EquippedStatOffsets.FirstOrFallback(t => t != null && t.stat == stat, null);
-                value += mod == null ? 0 : mod.value;
-            }
-            return value;
-        }
+
+        //------------------------------------//
+        //    ここからステータス数値関連      //
+        //------------------------------------//
+
         protected IEnumerable<(StatDef stat, float value)> cachedEOStats = null;
         public override IEnumerable<StatDrawEntry> SpecialDisplayStats() {
             if (cachedEOStats != null) {
@@ -188,35 +299,113 @@ namespace ModularWeapons2 {
             }
         }
 
+        public virtual float GetEquippedOffset(StatDef stat) {
+            float value = 0;
+            if (!attachedParts.NullOrEmpty()) {
+                for (int i = 0; i < mountAdapters.Count; i++) {
+                    ModularPartEffects effects = GetPartEffectsAt(i);
+                    var mod = effects.equippedStatOffsets?.FirstOrFallback(t => t != null && t.stat == stat, null);
+                    value += mod == null ? 0 : mod.value;
+                }
+            }
+            return value;
+        }
         public override float GetStatFactor(StatDef stat) {
             float value = base.GetStatFactor(stat);
-            foreach (var i in attachedParts) {
-                if (i?.StatFactors == null) continue;
-                var mod = i.StatFactors.FirstOrFallback(t => t!=null && t.stat == stat, null);
-                value += mod == null ? 0 : mod.value;
+            if (!attachedParts.NullOrEmpty()) {
+                for (int i = 0; i < mountAdapters.Count; i++) {
+                    ModularPartEffects effects = GetPartEffectsAt(i);
+                    var mod = effects.statFactors?.FirstOrFallback(t => t != null && t.stat == stat, null);
+                    value += mod == null ? 0 : mod.value;
+                }
             }
             return value;
         }
         public override float GetStatOffset(StatDef stat) {
             float value = base.GetStatOffset(stat);
-            foreach(var i in attachedParts) {
-                if (i?.StatOffsets == null) continue;
-                var mod = i.StatOffsets.FirstOrFallback(t =>t != null && t.stat == stat, null);
-                value += mod == null ? 0 : mod.value;
+            if (!attachedParts.NullOrEmpty()) {
+                for (int i = 0; i < mountAdapters.Count; i++) {
+                    ModularPartEffects effects = GetPartEffectsAt(i);
+                    var mod = effects.statOffsets?.FirstOrFallback(t => t != null && t.stat == stat, null);
+                    value += mod == null ? 0 : mod.value;
+                }
             }
             return value;
         }
+        //------------------------------------//
+        //    ステータス数値関連 ここまで     //
+        //------------------------------------//
+        //    ここからVerb(銃剣&UBGL)関連     //
+        //------------------------------------//
 
-        public override void Initialize(CompProperties props) {
-            base.Initialize(props);
-            attachedParts = Props.partsMounts.Select(t => t.defaultPart).ToList();
-            Log.Message("[MW2]parts count: " + attachedParts.Count);
-            RefleshParts();
+        VerbTracker verbTracker;
+        public VerbTracker VerbTracker => this.verbTracker ?? (this.verbTracker = new VerbTracker(this));
+
+        List<VerbProperties> verbProperties = new List<VerbProperties>();
+        public List<VerbProperties> VerbProperties => verbProperties?? (this.verbProperties = new List<VerbProperties>());
+
+        public Pawn GetHolder() {
+            ThingWithComps parent = this.parent;
+            Pawn_EquipmentTracker pawn_EquipmentTracker = ((parent != null) ? parent.ParentHolder : null) as Pawn_EquipmentTracker;
+            if (pawn_EquipmentTracker == null) {
+                return null;
+            }
+            return pawn_EquipmentTracker.pawn;
         }
-        public override void PostExposeData() {
-            base.PostExposeData();
-            Scribe_Collections.Look(ref attachedParts, "attachedParts", true, LookMode.Def);
+        public List<Verb> AllVerbs {
+            get {
+                var verbs = this.verbTracker.AllVerbs;
+                var holder = GetHolder();
+                if (holder != null) {
+                    foreach(var i in verbs) {
+                        i.caster = holder;
+                    }
+                }
+                return verbs; 
+            }
         }
+
+        List<Tool> tools = null;
+        public List<Tool> Tools {
+            get {
+                if(tools == null) {
+                    tools = GetToolsInt().ToList();
+                }
+                return tools;
+            }
+        }
+        protected IEnumerable<Tool> GetToolsInt() {
+            for(int i = 0; i < mountAdapters.Count; i++) {
+                var effect = GetPartEffectsAt(i);
+                if (effect.tools.NullOrEmpty())
+                    continue;
+                foreach(var tool in effect.tools) {
+                    yield return tool;
+                }
+            }
+        }
+
+        public ImplementOwnerTypeDef ImplementOwnerTypeDef => ImplementOwnerTypeDefOf.Weapon;
+
+        public Thing ConstantCaster => null;
+
+        public string UniqueVerbOwnerID() {
+            return "CompModularWeapon_" + this.parent.ThingID;
+        }
+
+        public bool VerbsStillUsableBy(Pawn p) {
+            Apparel item;
+            if ((item = (this.parent as Apparel)) != null) {
+                return p.apparel.WornApparel.Contains(item);
+            }
+            return p.equipment.AllEquipmentListForReading.Contains(this.parent);
+        }
+
+        //------------------------------------//
+        //         Verb関連 ここまで          //
+        //------------------------------------//
+        //         ここから描画関連           //
+        //------------------------------------//
 
         RenderTexture renderTextureInt = null;
         bool textureDirty;
@@ -249,34 +438,28 @@ namespace ModularWeapons2 {
             return materialInt;
         }
         public virtual IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
-            /*
-            Material mat1 = ThingDefOf.WoodLog.graphic.MatSingle;
-            Material mat2 = new Material(ThingDefOf.Steel.graphic.MatSingle);
-            mat2.shader = ShaderDatabase.CutoutSkinOverlay;
-            mat2.SetTexture(ShaderPropertyIDs.MaskTex, mat1.mainTexture);
-            yield return mat1;
-            yield return mat2;
-            */
             yield return new MWCameraRenderer.MWCameraRequest(Props.baseGraphicData.Graphic.MatSingle, Vector2.zero, 0);
             /*
             foreach(var i in attachedParts) {
                 yield return i.graphicData.Graphic.MatSingle;
             }
             */
-            for(int i = 0; i < Props.partsMounts.Count; i++) {
+            for(int i = 0; i < MountAdapters.Count; i++) {
                 if (attachedParts[i] == null) continue;
-                if (Props.partsMounts[i].adapterGraphic != null) {
+                if (MountAdapters[i].adapterGraphic != null) {
                     yield return new MWCameraRenderer.MWCameraRequest(
-                        Props.partsMounts[i].adapterGraphic.Graphic.MatSingle,
-                        Props.partsMounts[i].offset,
-                        Props.partsMounts[i].layerOrder
+                        MountAdapters[i].adapterGraphic.Graphic.MatSingle,
+                        MountAdapters[i].offset + adapterTextureOffset[i],
+                        MountAdapters[i].layerOrder
                         );
                 }
-                yield return new MWCameraRenderer.MWCameraRequest(
-                    attachedParts[i].graphicData.Graphic.MatSingle,
-                    Props.partsMounts[i].offset,
-                    Props.partsMounts[i].layerOrder
-                    );
+                if (attachedParts[i].graphicData != null) {
+                    yield return new MWCameraRenderer.MWCameraRequest(
+                        attachedParts[i].graphicData.Graphic.MatSingle,
+                        MountAdapters[i].offset + adapterTextureOffset[i],
+                        MountAdapters[i].layerOrder
+                        );
+                }
             }
         }
 
@@ -290,5 +473,9 @@ namespace ModularWeapons2 {
                 }
             }
         }
+
+        //------------------------------------//
+        //         描画関連 ここまで          //
+        //------------------------------------//
     }
 }

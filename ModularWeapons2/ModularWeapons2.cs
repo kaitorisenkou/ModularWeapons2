@@ -59,6 +59,22 @@ namespace ModularWeapons2 {
                 AccessTools.Method(typeof(VerbTracker), "CreateVerbTargetCommand", new Type[] { typeof(Thing), typeof(Verb) }),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_CreateVerbTargetCommand), null));
 
+            harmony.Patch(
+                AccessTools.Method(typeof(Pawn_MeleeVerbs), nameof(Pawn_MeleeVerbs.GetUpdatedAvailableVerbsList)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_MeleeVerbs), null));
+
+            harmony.Patch(
+                AccessTools.PropertyGetter(typeof(Verb), "EquipmentSource"),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_VerbEquipmentSource), null));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageDPS.GetExplanationUnfinalized)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageDPS.GetValueUnfinalized)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+
             Log.Message("[MW2] Harmony patch complete!");
 
             MW2Mod.statDefsShow.AddRange(new StatDef[] { 
@@ -207,6 +223,68 @@ namespace ModularWeapons2 {
             Material mat = ownerThing.Graphic.MatSingleFor(ownerThing);
             __result.icon = mat.mainTexture;
             __result.iconDrawScale = ownerThing.Graphic.drawSize.x;
+        }
+
+
+        static IEnumerable<CodeInstruction> Patch_MeleeVerbs(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            MethodInfo targetInfo = AccessTools.PropertyGetter(typeof(CompEquippable), "AllVerbs");
+            MethodInfo replaceInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetAllVerbs_IncludeMW));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Call && (MethodInfo)instructionList[i].operand == targetInfo) {
+                    instructionList[i].operand = replaceInfo;
+                    patchCount++;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_MeleeVerbs");
+            }
+            return instructionList;
+        }
+        static List<Verb> GetAllVerbs_IncludeMW(CompEquippable compEq) {
+            var compMW = compEq.parent.TryGetComp<CompModularWeapon>();
+            if (compMW != null) {
+                return compEq.AllVerbs.Concat(compMW.AllVerbs).ToList();
+            }
+            return compEq.AllVerbs;
+        }
+
+        static void Postfix_VerbEquipmentSource(ref ThingWithComps __result, Verb __instance) {
+            if (__result != null)
+                return;
+            var compMW = __instance.DirectOwner as CompModularWeapon;
+            if (compMW != null) 
+                __result = compMW.parent;
+        }
+
+        static IEnumerable<CodeInstruction> Patch_Explanation_MeleeDPS(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            MethodInfo targetInfo = AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), "GetVerbsAndTools");
+            MethodInfo addMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(AddMWTools));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo) {
+                    instructionList.InsertRange(i + 1, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Ldloc_2),
+                        new CodeInstruction(OpCodes.Call,addMethodInfo),
+                        new CodeInstruction(OpCodes.Stloc_2)
+                    });
+                    patchCount++;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_Explanation_MeleeDPS");
+            }
+            return instructionList;
+        }
+        static List<Tool> AddMWTools(StatRequest req,List<Tool> tools) {
+            var compMW = req.Thing?.TryGetComp<CompModularWeapon>();
+            if (compMW == null) {
+                return tools;
+            }
+            return tools.Concat(compMW.Tools).ToList();
         }
     }
 }

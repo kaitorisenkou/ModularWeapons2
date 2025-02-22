@@ -10,6 +10,6 @@ namespace ModularWeapons2 {
         public GraphicData baseGraphicData;
 
         public List<MountAdapterClass> partsMounts;
-        //public List<ModularPartsDef> defaultParts;
+        public List<PartsAttachHelperClass> defaultParts;
     }
 }
