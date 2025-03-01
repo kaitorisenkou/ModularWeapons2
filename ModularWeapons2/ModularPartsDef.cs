@@ -47,6 +47,11 @@ namespace ModularWeapons2 {
                 return effects.tools;
             }
         }
+        public MWAbilityProperties Ability {
+            get {
+                return effects.ability;
+            }
+        }
 
         protected Texture2D Texture {
             get {

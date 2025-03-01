@@ -10,12 +10,17 @@ namespace ModularWeapons2 {
         public List<StatModifier> statOffsets;
         public List<StatModifier> statFactors;
         public List<StatModifier> equippedStatOffsets;
+        public VerbPropsOffset verbPropsOffset;
         public List<MountAdapterClass> additionalAdapters;
         public List<Tool> tools;
+        public MWAbilityProperties ability;
 
         public IEnumerable<(string, Color)> GetStatChangeTexts(CompModularWeapon weapon = null) {
             var builder = new StringBuilder();
             Color color = Color.white;
+
+            //TODO verbPropsOffsetの表示
+
             if (statOffsets != null) {
                 foreach (var i in statOffsets) {
                     builder.Clear();
@@ -71,13 +76,13 @@ namespace ModularWeapons2 {
                     builder.Append(" (");
                     builder.Append(string.Join(",",tool.capacities.Select(t=>t.label)));
                     builder.Append(") ");
-                    builder.Append(tool.power);
-                    builder.Append("dmg / ");
-                    builder.Append(tool.cooldownTime);
-                    builder.Append("sec");
+                    builder.Append(string.Format("{0}dmg / {1}sec", tool.power, tool.cooldownTime));
                     yield return (builder.ToString(), color);
                 }
             }
+
+            //TODO アビリティの文章
+
         }
     }
 }

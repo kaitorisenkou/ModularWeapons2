@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace ModularWeapons2 {
     public interface ICompUniqueGraphic {
-        Texture GetTexture();
+        //Texture GetTexture();
         Material GetMaterial();
     }
 }

@@ -1,17 +1,20 @@
 ﻿using RimWorld;
+using RimWorld.Utility;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Security.AccessControl;
 using System.Text;
 using UnityEngine;
 using Verse;
+using Verse.Sound;
 using static HarmonyLib.Code;
 using static UnityEngine.Random;
 
 namespace ModularWeapons2 {
-    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner {
+    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner,IReloadableComp,ICompWithCharges {
         public CompProperties_ModularWeapon Props {
             get {
                 return (CompProperties_ModularWeapon)this.props;
@@ -45,17 +48,25 @@ namespace ModularWeapons2 {
             }
             return null;
         }
-        //NPC用ランダマイズ
+        //NPC用ランダマイズ&アビリティ更新
         bool onceEquipped;
         public override void Notify_Equipped(Pawn pawn) {
             base.Notify_Equipped(pawn);
+            var owner = GetOwner(parent);
             if (!onceEquipped) {
-                var owner = GetOwner(parent);
                 if (owner != null && !owner.IsPlayerControlled) {
                     RandomizePartsForPawn(owner);
                 }
                 onceEquipped = true;
             }
+            if (AbilityForReading != null) {
+                AbilityForReading.pawn = owner;
+                AbilityForReading.verb.caster = owner;
+                owner.abilities.Notify_TemporaryAbilitiesChanged();
+            }
+        }
+        public override void Notify_Unequipped(Pawn pawn) {
+            pawn.abilities.Notify_TemporaryAbilitiesChanged();
         }
         //武器の名前
         protected string weaponOverrideLabel = "";
@@ -147,6 +158,8 @@ namespace ModularWeapons2 {
             }
             requestCache = null;
             tools = null;
+            verbPropertiesCached = null;
+            abilityDirty = true;
             verbTracker.InitVerbsFromZero();
             Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             SetGraphicDirty();
@@ -266,6 +279,79 @@ namespace ModularWeapons2 {
         //------------------------------------//
         //      パーツ脱着関連 ここまで       //
         //------------------------------------//
+        //         ここから描画関連           //
+        //------------------------------------//
+
+        RenderTexture renderTextureInt = null;
+        bool textureDirty;
+        public virtual Texture GetTexture() {
+            if (renderTextureInt == null) {
+                var texture = Props.baseGraphicData.Graphic.MatSingle?.mainTexture;
+                renderTextureInt = new RenderTexture(texture.width * 2, texture.height * 2, 32, RenderTextureFormat.ARGB32);
+                textureDirty = true;
+            }
+            if (textureDirty) {
+                MWCameraRenderer.Render(renderTextureInt, this);
+                if (materialInt != null) {
+                    materialInt.mainTexture = renderTextureInt;
+                }
+                textureDirty = false;
+            }
+            return renderTextureInt;
+        }
+        Material materialInt = null;
+        public virtual Material GetMaterial() {
+            if (materialInt == null) {
+                MaterialRequest req = new MaterialRequest {
+                    mainTex = GetTexture(),
+                    shader = ShaderTypeDefOf.Cutout.Shader,
+                    color = Color.white,
+                    colorTwo = Color.white
+                };
+                materialInt = MaterialPool.MatFrom(req);
+            }
+            return materialInt;
+        }
+        public virtual IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
+            yield return new MWCameraRenderer.MWCameraRequest(Props.baseGraphicData.Graphic.MatSingle, Vector2.zero, 0);
+            /*
+            foreach(var i in attachedParts) {
+                yield return i.graphicData.Graphic.MatSingle;
+            }
+            */
+            for (int i = 0; i < MountAdapters.Count; i++) {
+                if (attachedParts[i] == null) continue;
+                if (MountAdapters[i].adapterGraphic != null) {
+                    yield return new MWCameraRenderer.MWCameraRequest(
+                        MountAdapters[i].adapterGraphic.Graphic.MatSingle,
+                        MountAdapters[i].offset + adapterTextureOffset[i],
+                        MountAdapters[i].layerOrder
+                        );
+                }
+                if (attachedParts[i].graphicData != null) {
+                    yield return new MWCameraRenderer.MWCameraRequest(
+                        attachedParts[i].graphicData.Graphic.MatSingle,
+                        MountAdapters[i].offset + adapterTextureOffset[i],
+                        MountAdapters[i].layerOrder
+                        );
+                }
+            }
+        }
+
+        public void SetGraphicDirty(bool renderNow = true) {
+            textureDirty = true;
+            if (renderNow) {
+                if (UnityData.IsInMainThread) {
+                    GetTexture();
+                } else {
+                    LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, null);
+                }
+            }
+        }
+
+        //------------------------------------//
+        //         描画関連 ここまで          //
+        //------------------------------------//
 
         protected ModularPartEffects GetPartEffectsAt(int index) {
             if (attachedParts[index] == null) {
@@ -273,7 +359,6 @@ namespace ModularWeapons2 {
             }
             return attachedParts[index].effects;
         }
-
 
         //------------------------------------//
         //    ここからステータス数値関連      //
@@ -335,7 +420,34 @@ namespace ModularWeapons2 {
         //------------------------------------//
         //    ステータス数値関連 ここまで     //
         //------------------------------------//
-        //    ここからVerb(銃剣&UBGL)関連     //
+        //    ここからVerb数値(射撃)関連      //
+        //------------------------------------//
+
+        List<VerbProperties> verbPropertiesCached = null;
+        public virtual List<VerbProperties> VerbPropertiesForOverride {
+            get {
+                if (verbPropertiesCached == null) {
+                    verbPropertiesCached = CalcVerbPropertiesForOverride().ToList();
+                }
+                return verbPropertiesCached;
+            }
+        }
+        public IEnumerable<VerbProperties> CalcVerbPropertiesForOverride() {
+            foreach(var verbProp in parent.def.Verbs) {
+                var clone = verbProp.MemberwiseClone();
+                for (int i = 0; i < mountAdapters.Count; i++) {
+                    var offset = GetPartEffectsAt(i).verbPropsOffset;
+                    if (offset == null) continue;
+                    offset.AffectVerbProps(clone);
+                }
+                yield return clone;
+            }
+        }
+
+        //------------------------------------//
+        //       Verb数値関連 ここまで        //
+        //------------------------------------//
+        //      ここからTool(銃剣)関連        //
         //------------------------------------//
 
         VerbTracker verbTracker;
@@ -392,7 +504,6 @@ namespace ModularWeapons2 {
         public string UniqueVerbOwnerID() {
             return "CompModularWeapon_" + this.parent.ThingID;
         }
-
         public bool VerbsStillUsableBy(Pawn p) {
             Apparel item;
             if ((item = (this.parent as Apparel)) != null) {
@@ -402,80 +513,161 @@ namespace ModularWeapons2 {
         }
 
         //------------------------------------//
-        //         Verb関連 ここまで          //
+        //         Tool関連 ここまで          //
         //------------------------------------//
-        //         ここから描画関連           //
+        //     ここからAbility関連 (UBGL)     //
         //------------------------------------//
 
-        RenderTexture renderTextureInt = null;
-        bool textureDirty;
-        public virtual Texture GetTexture() {
-            if (renderTextureInt == null) {
-                var texture = Props.baseGraphicData.Graphic.MatSingle?.mainTexture;
-                renderTextureInt = new RenderTexture(texture.width*2, texture.height*2, 32, RenderTextureFormat.ARGB32);
-                textureDirty = true;
-            }
-            if (textureDirty) {
-                MWCameraRenderer.Render(renderTextureInt, this);
-                if (materialInt != null) {
-                    materialInt.mainTexture = renderTextureInt;
-                }
-                textureDirty = false;
-            }
-            return renderTextureInt;
-        }
-        Material materialInt = null;
-        public virtual Material GetMaterial() {
-            if (materialInt == null) {
-                MaterialRequest req = new MaterialRequest {
-                    mainTex = GetTexture(),
-                    shader = ShaderTypeDefOf.Cutout.Shader,
-                    color = Color.white,
-                    colorTwo = Color.white
-                };
-                materialInt = MaterialPool.MatFrom(req);
-            }
-            return materialInt;
-        }
-        public virtual IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
-            yield return new MWCameraRenderer.MWCameraRequest(Props.baseGraphicData.Graphic.MatSingle, Vector2.zero, 0);
-            /*
-            foreach(var i in attachedParts) {
-                yield return i.graphicData.Graphic.MatSingle;
-            }
-            */
-            for(int i = 0; i < MountAdapters.Count; i++) {
-                if (attachedParts[i] == null) continue;
-                if (MountAdapters[i].adapterGraphic != null) {
-                    yield return new MWCameraRenderer.MWCameraRequest(
-                        MountAdapters[i].adapterGraphic.Graphic.MatSingle,
-                        MountAdapters[i].offset + adapterTextureOffset[i],
-                        MountAdapters[i].layerOrder
-                        );
-                }
-                if (attachedParts[i].graphicData != null) {
-                    yield return new MWCameraRenderer.MWCameraRequest(
-                        attachedParts[i].graphicData.Graphic.MatSingle,
-                        MountAdapters[i].offset + adapterTextureOffset[i],
-                        MountAdapters[i].layerOrder
-                        );
-                }
+        MWAbilityProperties abilityProperties = null;
+        bool abilityDirty = true;
+        public MWAbilityProperties AbilityProperties {
+            get {
+                if (abilityDirty) 
+                    abilityProperties = attachedParts.Select(t => t?.Ability).FirstOrFallback(t => t != null);
+                return abilityProperties;
             }
         }
 
-        public void SetGraphicDirty(bool renderNow = true) {
-            textureDirty = true;
-            if (renderNow) {
-                if (UnityData.IsInMainThread) {
-                    GetTexture();
-                } else {
-                    LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, null);
+        Ability ability = null;
+        public Ability AbilityForReading {
+            get {
+                if (abilityDirty) {
+                    MWAbilityProperties prop;
+                    if ((prop = AbilityProperties) != null) {
+                        var pawn = GetOwner(this.parent);
+                        ability = AbilityUtility.MakeAbility(prop.abilityDef, pawn);
+                        ability.maxCharges = prop.maxCharges;
+                        ability.RemainingCharges = 0;
+                    }
+                    abilityDirty = false;
+                }
+                //Log.Message("[MW2]ability: " + this.ability?.def.defName);
+                return this.ability;
+            }
+        }
+        public int RemainingCharges {
+            get { return AbilityForReading?.RemainingCharges ?? 0; }
+            set { if (AbilityForReading != null) AbilityForReading.RemainingCharges = value; }
+        }
+
+        public Thing ReloadableThing => this.parent;
+
+        public ThingDef AmmoDef => AbilityProperties?.ammoDef;
+
+        private int replenishInTicks = -1;
+        public int BaseReloadTicks => AbilityProperties?.baseReloadTicks ?? -1;
+
+        public int MaxCharges => AbilityProperties?.maxCharges ?? 0;
+
+        public string LabelRemaining => string.Format("{0} / {1}", this.RemainingCharges, this.MaxCharges);
+
+        public bool CanBeUsed(out string reason) {
+            reason = "";
+            if (this.RemainingCharges <= 0) {
+                reason = this.DisabledReason(this.MinAmmoNeeded(false), this.MaxAmmoNeeded(false));
+                return false;
+            }
+            return true;
+        }
+
+        public bool NeedsReload(bool allowForceReload) {
+            if (AbilityProperties?.ammoDef == null) {
+                return false;
+            }
+            if (AbilityProperties.ammoCountToRefill == 0) {
+                return this.RemainingCharges != this.MaxCharges;
+            }
+            if (!allowForceReload) {
+                return this.RemainingCharges == 0;
+            }
+            return this.RemainingCharges != this.MaxCharges;
+        }
+
+        public int MinAmmoNeeded(bool allowForcedReload) {
+            if (!this.NeedsReload(allowForcedReload)) {
+                return 0;
+            }
+            if (AbilityProperties.ammoCountToRefill != 0) {
+                return AbilityProperties.ammoCountToRefill;
+            }
+            return AbilityProperties.ammoCountPerCharge;
+        }
+
+        public int MaxAmmoNeeded(bool allowForcedReload) {
+            if (!this.NeedsReload(allowForcedReload)) {
+                return 0;
+            }
+            if (AbilityProperties.ammoCountToRefill != 0) {
+                return AbilityProperties.ammoCountToRefill;
+            }
+            return AbilityProperties.ammoCountPerCharge * (this.MaxCharges - this.RemainingCharges);
+        }
+
+        public int MaxAmmoAmount() {
+            if (AbilityProperties?.ammoDef == null) {
+                return 0;
+            }
+            if (AbilityProperties.ammoCountToRefill == 0) {
+                return AbilityProperties.ammoCountPerCharge * this.MaxCharges;
+            }
+            return AbilityProperties.ammoCountToRefill;
+        }
+
+        public void ReloadFrom(Thing ammo) {
+            if (!this.NeedsReload(true)) {
+                return;
+            }
+            if (AbilityProperties.ammoCountToRefill != 0) {
+                if (ammo.stackCount < AbilityProperties.ammoCountToRefill) {
+                    return;
+                }
+                ammo.SplitOff(AbilityProperties.ammoCountToRefill).Destroy(DestroyMode.Vanish);
+                this.RemainingCharges = this.MaxCharges;
+            } else {
+                if (ammo.stackCount < AbilityProperties.ammoCountPerCharge) {
+                    return;
+                }
+                int num = Mathf.Clamp(ammo.stackCount / AbilityProperties.ammoCountPerCharge, 0, this.MaxCharges - this.RemainingCharges);
+                ammo.SplitOff(num * AbilityProperties.ammoCountPerCharge).Destroy(DestroyMode.Vanish);
+                this.RemainingCharges += num;
+            }
+            if (AbilityProperties.soundReload != null) {
+                AbilityProperties.soundReload.PlayOneShot(new TargetInfo(this.parent.PositionHeld, this.parent.MapHeld, false));
+            }
+        }
+
+        public string DisabledReason(int minNeeded, int maxNeeded) {
+            if (AbilityProperties == null) {
+                return "MW2_NoUBGL".Translate();
+            }
+            if (AbilityProperties.replenishAfterCooldown) {
+                return "CommandReload_Cooldown".Translate(AbilityProperties.CooldownVerbArgument, this.replenishInTicks.ToStringTicksToPeriod(true, false, true, true, false).Named("TIME"));
+            }
+            if (AbilityProperties.ammoDef == null) {
+                return "CommandReload_NoCharges".Translate(AbilityProperties.ChargeNounArgument);
+            }
+            string arg;
+            if (AbilityProperties.ammoCountToRefill != 0) {
+                arg = AbilityProperties.ammoCountToRefill.ToString();
+            } else {
+                arg = ((minNeeded == maxNeeded) ? minNeeded.ToString() : string.Format("{0}-{1}", minNeeded, maxNeeded));
+            }
+            return "CommandReload_NoAmmo".Translate(AbilityProperties.ChargeNounArgument, AbilityProperties.ammoDef.Named("AMMO"), arg.Named("COUNT"));
+        }
+        public override void CompTick() {
+            base.CompTick();
+            if (AbilityProperties != null) {
+                if (AbilityProperties.replenishAfterCooldown && this.RemainingCharges == 0) {
+                    if (this.replenishInTicks <= 0) {
+                        this.RemainingCharges = this.MaxCharges;
+                    }
+                    this.replenishInTicks--;
                 }
             }
         }
 
         //------------------------------------//
-        //         描画関連 ここまで          //
+        //        Ability関連 ここまで        //
         //------------------------------------//
     }
 }

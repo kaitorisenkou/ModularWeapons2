@@ -81,10 +81,13 @@
     <Compile Include="MountAdapterClass.cs" />
     <Compile Include="MW2DefOf.cs" />
     <Compile Include="MW2Mod.cs" />
+    <Compile Include="MWAbilityProperties.cs" />
     <Compile Include="MWDebugActions.cs" />
     <Compile Include="MWCameraRenderer.cs" />
     <Compile Include="PartsAttachHelperClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="VerbPropsOffset.cs" />
+    <Compile Include="Verb_AbilityUseUBGL.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

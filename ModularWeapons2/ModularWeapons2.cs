@@ -12,6 +12,8 @@ using System.Reflection;
 using UnityEngine;
 using Verse.Noise;
 using Verse.AI;
+using RimWorld.Utility;
+using System.Net.NetworkInformation;
 
 namespace ModularWeapons2 {
     [StaticConstructorOnStartup]
@@ -74,6 +76,39 @@ namespace ModularWeapons2 {
             harmony.Patch(
                 AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageDPS.GetValueUnfinalized)),
                 transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+
+            harmony.Patch(
+                AccessTools.PropertyGetter(typeof(Pawn_AbilityTracker), nameof(Pawn_AbilityTracker.AllAbilitiesForReading)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_AbilityTracker), null));
+
+
+            var innerType_ReloadJob = typeof(JobDriver_Reload).InnerTypes().FirstOrFallback(t => t.Name.Contains("<MakeNewToils>"));
+            if (innerType_ReloadJob != null) {
+                harmony.Patch(
+                    AccessTools.Method(innerType_ReloadJob, "MoveNext"),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_JobReload), null));
+            }
+
+            var innerType_ReloadUtil = typeof(ReloadableUtility).InnerTypes().FirstOrFallback(t => t.Name.Contains("<FindPotentiallyReloadableGear>"));
+            if (innerType_ReloadUtil != null) {
+                harmony.Patch(
+                    AccessTools.Method(innerType_ReloadUtil, "MoveNext"),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_ReloadableUtil), null));
+            }
+            harmony.Patch(
+                AccessTools.Method(typeof(ReloadableUtility), nameof(ReloadableUtility.FindSomeReloadableComponent)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_ReloadableUtil), null));
+
+            harmony.Patch(
+                AccessTools.PropertyGetter(typeof(CompEquippable), nameof(CompEquippable.VerbProperties)),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_CompEqVerbProperties), null));
+
+            innerType_ThingDefSDS = typeof(ThingDef).InnerTypes().FirstOrFallback(t => t.Name.Contains("<SpecialDisplayStats>"));
+            if (innerType_ThingDefSDS != null) {
+                harmony.Patch(
+                    AccessTools.Method(innerType_ThingDefSDS, "MoveNext"),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_ThingDefSDS), null));
+            }
 
             Log.Message("[MW2] Harmony patch complete!");
 
@@ -253,6 +288,9 @@ namespace ModularWeapons2 {
         static void Postfix_VerbEquipmentSource(ref ThingWithComps __result, Verb __instance) {
             if (__result != null)
                 return;
+            if(__instance is Verb_AbilityUseUBGL && __instance.verbProps.ForcedMissRadius > 0.5f) {
+                __result = (__instance as Verb_AbilityUseUBGL).Ability.pawn.equipment.Primary;
+            }
             var compMW = __instance.DirectOwner as CompModularWeapon;
             if (compMW != null) 
                 __result = compMW.parent;
@@ -285,6 +323,131 @@ namespace ModularWeapons2 {
                 return tools;
             }
             return tools.Concat(compMW.Tools).ToList();
+        }
+
+
+        static IEnumerable<CodeInstruction> Patch_AbilityTracker(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            MethodInfo targetInfo = AccessTools.PropertyGetter(typeof(CompEquippableAbility), nameof(CompEquippableAbility.AbilityForReading));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Callvirt && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo) {
+                    do { i++; } while (!instructionList[i].labels.Any());
+                    var firstInst = new CodeInstruction(OpCodes.Ldarg_0);
+                    firstInst.labels = instructionList[i].labels;
+                    instructionList[i].labels = new List<Label>();
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        firstInst,
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld,AccessTools.Field(typeof(Pawn_AbilityTracker),"allAbilitiesCached")),
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ModularWeapons2), nameof(AddMWAbility)))
+                    });
+                    patchCount++;
+                    break;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_AbilityTracker");
+            }
+            return instructionList;
+        }
+        static void AddMWAbility(Pawn_AbilityTracker tracker,List<Ability>abilityList) {
+            var comp = tracker.pawn.equipment?.Primary?.TryGetComp<CompModularWeapon>();
+            if (comp != null) {
+                var ability = comp.AbilityForReading;
+                if (ability != null) {
+                    abilityList.Add(ability);
+                }
+            }
+        }
+
+
+        static IEnumerable<CodeInstruction> Patch_JobReload(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            MethodInfo targetInfo = AccessTools.Method(typeof(ThingCompUtility), nameof(ThingCompUtility.TryGetComp), parameters: new Type[] { typeof(Thing) }, generics: new Type[] { typeof(CompEquippableAbilityReloadable) });
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo) {
+                    instructionList[i].operand = AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable));
+                    patchCount++;
+                    break;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_JobReload");
+            }
+            return instructionList;
+        }
+
+        static IReloadableComp FindIReloadable(Thing gear) {
+            var compEq = gear.TryGetComp<CompEquippableAbilityReloadable>();
+            if (compEq != null) return compEq;
+            return gear.TryGetComp<CompModularWeapon>();
+        }
+
+        static IEnumerable<CodeInstruction> Patch_ReloadableUtil(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Isinst) {
+                    instructionList[i] = new CodeInstruction(
+                        OpCodes.Call,
+                        AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable_ReloadableUtil))
+                        );
+                    patchCount++;
+                    break;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_ReloadableUtil");
+            }
+            return instructionList;
+        }
+
+        static IReloadableComp FindIReloadable_ReloadableUtil(CompEquippable gear) {
+            var compEqAb = gear as IReloadableComp;
+            if (compEqAb != null) return compEqAb;
+            return gear.parent.TryGetComp<CompModularWeapon>();
+        }
+
+
+        static void Postfix_CompEqVerbProperties(ref List<VerbProperties> __result, CompEquippable __instance) {
+            var compMW = __instance.parent.TryGetComp<CompModularWeapon>();
+            if (compMW == null) return;
+            __result = compMW.VerbPropertiesForOverride;
+        }
+
+        static Type innerType_ThingDefSDS = null;
+        static IEnumerable<CodeInstruction> Patch_ThingDefSDS(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            FieldInfo targetInfo = AccessTools.Field(typeof(ThingDef), "verbs");
+            FieldInfo reqInfo = AccessTools.Field(innerType_ThingDefSDS, "req");
+            MethodInfo replaceMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetOverriddenVerbs));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Ldfld && (FieldInfo)instructionList[i].operand== targetInfo) {
+                    i++;
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld,reqInfo),
+                        new CodeInstruction(OpCodes.Call,replaceMethodInfo)
+                    });
+                    patchCount++;
+                }
+            }
+            if (patchCount < 2) {
+                Log.Error("[MW]patch failed : Patch_ThingDefSDS");
+            }
+            return instructionList;
+        }
+        static List<VerbProperties> GetOverriddenVerbs(List<VerbProperties> original, StatRequest req) {
+            if (req.HasThing) {
+                var comp = req.Thing.TryGetComp<CompEquippable>();
+                if (comp != null)
+                    return comp.VerbProperties;
+            }
+
+            return original;
         }
     }
 }
