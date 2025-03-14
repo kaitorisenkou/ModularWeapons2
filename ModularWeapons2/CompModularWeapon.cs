@@ -14,7 +14,7 @@ using static HarmonyLib.Code;
 using static UnityEngine.Random;
 
 namespace ModularWeapons2 {
-    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner,IReloadableComp,ICompWithCharges {
+    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner, IReloadableComp, ICompWithCharges {
         public CompProperties_ModularWeapon Props {
             get {
                 return (CompProperties_ModularWeapon)this.props;
@@ -34,6 +34,22 @@ namespace ModularWeapons2 {
         public override void PostExposeData() {
             base.PostExposeData();
             Scribe_Collections.Look(ref attachedParts, "attachedParts", true, LookMode.Def);
+            Scribe_Collections.Look(ref attachedParts_buffer, "attachedParts_buffer", true, LookMode.Def);
+            Scribe_Collections.Look(ref attachHelpers, "attachHelpers", LookMode.Deep);
+            Scribe_Collections.Look(ref decalHelpers, "decalHelpers", LookMode.Deep, new object[] { null, null, null });
+            Scribe_Deep.Look(ref verbTracker, "verbTracker", new object[] { this });
+            Scribe_Deep.Look(ref ability, "ability", Array.Empty<object>());
+            Scribe_Values.Look(ref abilityDirty, "abilityDirty", defaultValue: true);
+            if (Scribe.mode != LoadSaveMode.Saving) {
+                RefleshParts(true);
+            }
+            if (Scribe.mode == LoadSaveMode.PostLoadInit) {
+                var holder = GetHolder();
+                if (holder != null) {
+                    this.AbilityForReading.pawn = holder;
+                    this.AbilityForReading.verb.caster = holder;
+                }
+            }
         }
         static protected Pawn GetOwner(Thing thing) {
             if (thing == null) {
@@ -145,7 +161,7 @@ namespace ModularWeapons2 {
             attachedParts = new List<ModularPartsDef>(attachedParts_buffer);
             RefleshParts();
         }
-        protected virtual void RefleshParts() {
+        protected virtual void RefleshParts(bool scribe = false) {
             attachedParts = SolveAttachHelpers(attachHelpers);
             if (attachedParts.NullOrEmpty()) {
                 cachedEOStats = Enumerable.Empty<(StatDef, float)>();
@@ -157,12 +173,15 @@ namespace ModularWeapons2 {
                     .Select(t1 => (t1.Key, t1.Sum(t2 => t2.value)));
             }
             requestCache = null;
-            tools = null;
-            verbPropertiesCached = null;
-            abilityDirty = true;
-            verbTracker.InitVerbsFromZero();
-            Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
+            if (!scribe) {
+                tools = null;
+                verbPropertiesCached = null;
+                abilityDirty = true;
+                verbTracker.InitVerbsFromZero();
+                Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
+            }
             SetGraphicDirty();
+            tacDeviceDirty = true;
         }
         protected List<ModularPartsDef> SolveAttachHelpers(List<PartsAttachHelper> attachHelpers) {
             mountAdapters = new List<MountAdapterClass>(Props.partsMounts);
@@ -255,7 +274,7 @@ namespace ModularWeapons2 {
                 (weaponTags != null && t.weaponTags.Any(t2 => weaponTags.Contains(t2)))
                 );
             if (!allDefs.Any()) {
-                //TODO
+                //TODO 完全ランダム
                 Log.Message("[MW2]no presetDefs found: " + parentDef);
                 return;
             }
@@ -313,27 +332,40 @@ namespace ModularWeapons2 {
             return materialInt;
         }
         public virtual IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
-            yield return new MWCameraRenderer.MWCameraRequest(Props.baseGraphicData.Graphic.MatSingle, Vector2.zero, 0);
-            /*
-            foreach(var i in attachedParts) {
-                yield return i.graphicData.Graphic.MatSingle;
+            var baseMat = Props.baseGraphicData.Graphic.MatSingle;
+            yield return new MWCameraRenderer.MWCameraRequest(baseMat, Vector2.zero, 0);
+            var baseDecal = decalHelpers.FirstOrFallback(t => t.attachMountDef == null);
+            if (baseDecal?.decalDef != null) {
+                yield return new MWCameraRenderer.MWCameraRequest(
+                    baseDecal.GetMaskedMaterial(baseMat.mainTexture),
+                    Vector2.zero, 0);
             }
-            */
             for (int i = 0; i < MountAdapters.Count; i++) {
                 if (attachedParts[i] == null) continue;
+                var offset = MountAdapters[i].offset + adapterTextureOffset[i];
                 if (MountAdapters[i].adapterGraphic != null) {
                     yield return new MWCameraRenderer.MWCameraRequest(
                         MountAdapters[i].adapterGraphic.Graphic.MatSingle,
-                        MountAdapters[i].offset + adapterTextureOffset[i],
+                        offset,
                         MountAdapters[i].layerOrder
                         );
                 }
                 if (attachedParts[i].graphicData != null) {
+                    var partMat = attachedParts[i].graphicData.Graphic.MatSingle;
                     yield return new MWCameraRenderer.MWCameraRequest(
-                        attachedParts[i].graphicData.Graphic.MatSingle,
-                        MountAdapters[i].offset + adapterTextureOffset[i],
+                        partMat,
+                        offset,
                         MountAdapters[i].layerOrder
                         );
+
+                    var decal = decalHelpers.FirstOrFallback(t => t.attachMountDef == MountAdapters[i].mountDef);
+                    if (decal?.decalDef != null) {
+                        yield return new MWCameraRenderer.MWCameraRequest(
+                            decal.GetMaskedMaterial(partMat.mainTexture),
+                            offset,
+                            MountAdapters[i].layerOrder
+                            );
+                    }
                 }
             }
         }
@@ -347,6 +379,37 @@ namespace ModularWeapons2 {
                     LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, null);
                 }
             }
+        }
+
+        //    ----    迷彩関連    ----    //
+
+        protected List<DecalPaintHelper> decalHelpers = new List<DecalPaintHelper>();
+        public DecalPaintHelper GetPaintHelperOfBase() {
+            return GetPaintHelperOf(null);
+        }
+        public DecalPaintHelper GetPaintHelperOf(ModularPartsMountDef attachMountDef) {
+            var result = decalHelpers.FirstOrFallback(t => t.attachMountDef == attachMountDef);
+            if (result == null) {
+                result = SetDecal(new DecalPaintHelper(null, attachMountDef: attachMountDef));
+            }
+            return result;
+        }
+        public virtual DecalPaintHelper SetDecal(DecalPaintHelper helper) {
+            SetDecalInt(helper);
+            RefleshParts();
+            return helper;
+        }
+        protected void SetDecalInt(DecalPaintHelper helper) {
+            if (decalHelpers == null) {
+                decalHelpers = new List<DecalPaintHelper>();
+            }
+            int index = decalHelpers.FirstIndexOf(t => t.CanReplacedTo(helper));
+            if (index >= 0) {
+                decalHelpers[index] = helper;
+            } else {
+                decalHelpers.Add(helper);
+            }
+            return;
         }
 
         //------------------------------------//
@@ -433,7 +496,7 @@ namespace ModularWeapons2 {
             }
         }
         public IEnumerable<VerbProperties> CalcVerbPropertiesForOverride() {
-            foreach(var verbProp in parent.def.Verbs) {
+            foreach (var verbProp in parent.def.Verbs) {
                 var clone = verbProp.MemberwiseClone();
                 for (int i = 0; i < mountAdapters.Count; i++) {
                     var offset = GetPartEffectsAt(i).verbPropsOffset;
@@ -454,7 +517,7 @@ namespace ModularWeapons2 {
         public VerbTracker VerbTracker => this.verbTracker ?? (this.verbTracker = new VerbTracker(this));
 
         List<VerbProperties> verbProperties = new List<VerbProperties>();
-        public List<VerbProperties> VerbProperties => verbProperties?? (this.verbProperties = new List<VerbProperties>());
+        public List<VerbProperties> VerbProperties => verbProperties ?? (this.verbProperties = new List<VerbProperties>());
 
         public Pawn GetHolder() {
             ThingWithComps parent = this.parent;
@@ -469,29 +532,29 @@ namespace ModularWeapons2 {
                 var verbs = this.verbTracker.AllVerbs;
                 var holder = GetHolder();
                 if (holder != null) {
-                    foreach(var i in verbs) {
+                    foreach (var i in verbs) {
                         i.caster = holder;
                     }
                 }
-                return verbs; 
+                return verbs;
             }
         }
 
         List<Tool> tools = null;
         public List<Tool> Tools {
             get {
-                if(tools == null) {
+                if (tools == null) {
                     tools = GetToolsInt().ToList();
                 }
                 return tools;
             }
         }
         protected IEnumerable<Tool> GetToolsInt() {
-            for(int i = 0; i < mountAdapters.Count; i++) {
+            for (int i = 0; i < mountAdapters.Count; i++) {
                 var effect = GetPartEffectsAt(i);
                 if (effect.tools.NullOrEmpty())
                     continue;
-                foreach(var tool in effect.tools) {
+                foreach (var tool in effect.tools) {
                     yield return tool;
                 }
             }
@@ -522,7 +585,7 @@ namespace ModularWeapons2 {
         bool abilityDirty = true;
         public MWAbilityProperties AbilityProperties {
             get {
-                if (abilityDirty) 
+                if (abilityDirty)
                     abilityProperties = attachedParts.Select(t => t?.Ability).FirstOrFallback(t => t != null);
                 return abilityProperties;
             }
@@ -668,6 +731,43 @@ namespace ModularWeapons2 {
 
         //------------------------------------//
         //        Ability関連 ここまで        //
+        //------------------------------------//
+        //    ここからフラッシュライト関連    //
+        //------------------------------------//
+
+        MWTacDevice tacDevice = null;
+        bool tacDeviceDirty = true;
+        public MWTacDevice TacDevice {
+            get {
+                if (tacDeviceDirty) {
+                    tacDevice = attachedParts.Select(t => t?.effects.tacDevice).FirstOrFallback(t => t != null);
+                    tacDeviceDirty = false;
+                }
+                return tacDevice;
+            }
+        }
+        public void DrawTacDevice() {
+            if (TacDevice == null) return;
+            var holder = GetHolder();
+            Stance_Busy stance;
+            if (holder?.stances != null &&
+                 (stance = (holder.stances.curStance as Stance_Busy)) != null &&
+                 stance.verb != null &&
+                 stance.verb is Verb_Shoot
+                ) {
+                //DrawTacDevice(holder.TrueCenter(), stance_Warmup.verb.CurrentTarget.CenterVector3);
+                TacDevice.DrawEffect(holder.TrueCenter(), stance.verb.CurrentTarget.CenterVector3);
+            }
+        }
+        public void OnStanceBusy(Verb verb) {
+            if (TacDevice == null) return;
+            var pawn = verb.caster as Pawn;
+            if (pawn != null)
+                TacDevice.OnStanceBegin(pawn, verb.CurrentTarget);
+        }
+
+        //------------------------------------//
+        //   フラッシュライト関連 ここまで    //
         //------------------------------------//
     }
 }

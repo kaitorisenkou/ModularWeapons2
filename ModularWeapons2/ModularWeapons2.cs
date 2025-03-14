@@ -20,19 +20,19 @@ namespace ModularWeapons2 {
     public class ModularWeapons2 {
         static ModularWeapons2() {
             Log.Message("[MW2]Now Active");
-            var harmony = new Harmony("kaitorisenkou.ModularWeapons2"); 
+            var harmony = new Harmony("kaitorisenkou.ModularWeapons2");
 
             harmony.Patch(
-                AccessTools.Method(typeof(StatWorker), nameof(StatWorker.StatOffsetFromGear), new Type[] { typeof(Thing), typeof(StatDef) }), 
-                transpiler:new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_StatOffsetFromGear), null));
+                AccessTools.Method(typeof(StatWorker), nameof(StatWorker.StatOffsetFromGear), new Type[] { typeof(Thing), typeof(StatDef) }),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_StatOffsetFromGear), null));
 
             harmony.Patch(
                 AccessTools.Method(typeof(StatWorker), "GearHasCompsThatAffectStat", new Type[] { typeof(Thing), typeof(StatDef) }),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_GearHasCompsThatAffectStat), null));
 
-            MethodInfo GetIconForMethod = 
-                typeof(Widgets).GetMethods().First(t => 
-                t.Name == "GetIconFor" && t.GetParameters().Any(tt=>tt.ParameterType == typeof(Thing))
+            MethodInfo GetIconForMethod =
+                typeof(Widgets).GetMethods().First(t =>
+                t.Name == "GetIconFor" && t.GetParameters().Any(tt => tt.ParameterType == typeof(Thing))
                 );
             harmony.Patch(GetIconForMethod, transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_GetIconFor), null));
 
@@ -54,7 +54,7 @@ namespace ModularWeapons2 {
                 }
             }
             if (!isFound_PlaceHauledThingInCell) {
-                Log.Error("[MW2] Inner method of PlaceHauledThingInCell not found! ("+ types_PlaceHauledThingInCell.Length.ToString()+")");
+                Log.Error("[MW2] Inner method of PlaceHauledThingInCell not found! (" + types_PlaceHauledThingInCell.Length.ToString() + ")");
             }
 
             harmony.Patch(
@@ -68,6 +68,10 @@ namespace ModularWeapons2 {
             harmony.Patch(
                 AccessTools.PropertyGetter(typeof(Verb), "EquipmentSource"),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_VerbEquipmentSource), null));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(Pawn_EquipmentTracker), nameof(Pawn_EquipmentTracker.ExposeData)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_EqTrExposeData), null));
 
             harmony.Patch(
                 AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageDPS.GetExplanationUnfinalized)),
@@ -110,12 +114,23 @@ namespace ModularWeapons2 {
                     transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_ThingDefSDS), null));
             }
 
+            harmony.Patch(
+                AccessTools.Method(typeof(PawnRenderUtility), nameof(PawnRenderUtility.DrawEquipmentAiming)),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_DrawEquipmentAiming), null));
+            harmony.Patch(
+                AccessTools.Constructor(typeof(Stance_Busy), new Type[] { typeof(int), typeof(LocalTargetInfo), typeof(Verb) }),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_ConstructerStanceBusy), null));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(VerbTracker), nameof(VerbTracker.ExposeData)),
+                prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_VerbTrackerExpose), null));
+
             Log.Message("[MW2] Harmony patch complete!");
 
-            MW2Mod.statDefsShow.AddRange(new StatDef[] { 
-                StatDefOf.Mass, 
-                StatDefOf.MeleeDodgeChance, 
-                StatDefOf.MeleeHitChance 
+            MW2Mod.statDefsShow.AddRange(new StatDef[] {
+                StatDefOf.Mass,
+                StatDefOf.MeleeDodgeChance,
+                StatDefOf.MeleeHitChance
             });
             MW2Mod.statCategoryShow.AddRange(new StatCategoryDef[]{
                 StatCategoryDefOf.Weapon,
@@ -165,7 +180,7 @@ namespace ModularWeapons2 {
             return 0;
         }
 
-        static void Postfix_GearHasCompsThatAffectStat(ref bool __result,Thing gear, StatDef stat) {
+        static void Postfix_GearHasCompsThatAffectStat(ref bool __result, Thing gear, StatDef stat) {
             if (__result) {
                 return;
             }
@@ -199,9 +214,9 @@ namespace ModularWeapons2 {
             int patchCount = 0;
             var instructionList = instructions.ToList();
             MethodInfo targetMethod = AccessTools.Method(typeof(GlobalTextureAtlasManager), nameof(GlobalTextureAtlasManager.TryGetStaticTile));
-            
+
             for (int i = 1; i < instructionList.Count; i++) {
-                if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo&& (MethodInfo)instructionList[i].operand == targetMethod) {
+                if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetMethod) {
                     var branch = instructionList[i + 1];
                     while (true) {
                         i--;
@@ -209,7 +224,7 @@ namespace ModularWeapons2 {
                             break;
                     }
                     instructionList[i].opcode = OpCodes.Ldarg_0;
-                    instructionList.InsertRange(i+1, new CodeInstruction[] {
+                    instructionList.InsertRange(i + 1, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Call,AccessTools.Method(typeof(ModularWeapons2),nameof(IsTexture2D))),
                         branch,
                         new CodeInstruction(OpCodes.Ldarg_1)
@@ -278,6 +293,9 @@ namespace ModularWeapons2 {
             return instructionList;
         }
         static List<Verb> GetAllVerbs_IncludeMW(CompEquippable compEq) {
+            if (Scribe.mode != LoadSaveMode.Inactive) {
+                return compEq.AllVerbs;
+            }
             var compMW = compEq.parent.TryGetComp<CompModularWeapon>();
             if (compMW != null) {
                 return compEq.AllVerbs.Concat(compMW.AllVerbs).ToList();
@@ -288,12 +306,29 @@ namespace ModularWeapons2 {
         static void Postfix_VerbEquipmentSource(ref ThingWithComps __result, Verb __instance) {
             if (__result != null)
                 return;
-            if(__instance is Verb_AbilityUseUBGL && __instance.verbProps.ForcedMissRadius > 0.5f) {
+            if (__instance is Verb_AbilityUseUBGL && __instance.verbProps.ForcedMissRadius > 0.5f) {
                 __result = (__instance as Verb_AbilityUseUBGL).Ability.pawn.equipment.Primary;
             }
             var compMW = __instance.DirectOwner as CompModularWeapon;
-            if (compMW != null) 
+            if (compMW != null)
                 __result = compMW.parent;
+        }
+
+        static IEnumerable<CodeInstruction> Patch_EqTrExposeData(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            MethodInfo targetInfo = AccessTools.PropertyGetter(typeof(CompEquippable), "AllVerbs");
+            MethodInfo replaceInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetAllVerbs_IncludeMW));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Callvirt && (MethodInfo)instructionList[i].operand == targetInfo) {
+                    instructionList[i].operand = replaceInfo;
+                    patchCount++;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_EqTrExposeData");
+            }
+            return instructionList;
         }
 
         static IEnumerable<CodeInstruction> Patch_Explanation_MeleeDPS(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
@@ -317,7 +352,7 @@ namespace ModularWeapons2 {
             }
             return instructionList;
         }
-        static List<Tool> AddMWTools(StatRequest req,List<Tool> tools) {
+        static List<Tool> AddMWTools(StatRequest req, List<Tool> tools) {
             var compMW = req.Thing?.TryGetComp<CompModularWeapon>();
             if (compMW == null) {
                 return tools;
@@ -351,7 +386,7 @@ namespace ModularWeapons2 {
             }
             return instructionList;
         }
-        static void AddMWAbility(Pawn_AbilityTracker tracker,List<Ability>abilityList) {
+        static void AddMWAbility(Pawn_AbilityTracker tracker, List<Ability> abilityList) {
             var comp = tracker.pawn.equipment?.Primary?.TryGetComp<CompModularWeapon>();
             if (comp != null) {
                 var ability = comp.AbilityForReading;
@@ -425,7 +460,7 @@ namespace ModularWeapons2 {
             FieldInfo reqInfo = AccessTools.Field(innerType_ThingDefSDS, "req");
             MethodInfo replaceMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetOverriddenVerbs));
             for (int i = 0; i < instructionList.Count; i++) {
-                if (instructionList[i].opcode == OpCodes.Ldfld && (FieldInfo)instructionList[i].operand== targetInfo) {
+                if (instructionList[i].opcode == OpCodes.Ldfld && (FieldInfo)instructionList[i].operand == targetInfo) {
                     i++;
                     instructionList.InsertRange(i, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Ldarg_0),
@@ -448,6 +483,30 @@ namespace ModularWeapons2 {
             }
 
             return original;
+        }
+
+
+        static void Postfix_DrawEquipmentAiming(Thing eq) {
+            var compMW = eq.TryGetComp<CompModularWeapon>();
+            if (compMW == null) return;
+            compMW.DrawTacDevice();
+        }
+        static void Postfix_ConstructerStanceBusy(Verb ___verb) {
+            var compMW = ___verb?.EquipmentSource?.TryGetComp<CompModularWeapon>();
+            if (compMW == null) return;
+            compMW.OnStanceBusy(___verb);
+        }
+
+
+        static bool Prefix_VerbTrackerExpose(VerbTracker __instance) {
+            if (__instance.directOwner is CompModularWeapon ||
+                (__instance.directOwner as CompEquippable)?.parent.TryGetComp<CompModularWeapon>() != null) {
+                if (Scribe.mode == LoadSaveMode.PostLoadInit) {
+                    __instance.InitVerbsFromZero();
+                }
+                return false;
+            }
+            return true;
         }
     }
 }

@@ -17,5 +17,10 @@ namespace ModularWeapons2 {
             this.ability.Activate(this.currentTarget, this.currentDestination);
             return base.TryCastShot();
         }
+
+        public override void ExposeData() {
+            base.ExposeData();
+            Scribe_References.Look(ref this.ability, "ability", false);
+        }
     }
 }

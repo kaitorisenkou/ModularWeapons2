@@ -115,6 +115,10 @@ namespace ModularWeapons2 {
             DoPartsDescContents(partsRect);
             DoLowerContents(lowerRect);
         }
+
+        //--------------------------------------------------------//
+        //    最上段パネル: 武器名ラベル, 保存/読込/改名ボタン    //    
+        //--------------------------------------------------------//
         protected virtual void DoHeadContents(Rect inRect) {
             var fontSize = Text.Font;
             Text.Font = GameFont.Medium;
@@ -129,6 +133,10 @@ namespace ModularWeapons2 {
             Text.Font = fontSize;
             Text.Anchor = fontAnchor;
         }
+
+        //--------------------------------------//
+        //      左側パネル: ステータス表示      //    
+        //--------------------------------------//
         protected Vector2 scrollPos_Status = new Vector2();
         protected Rect viewRect_Status = new Rect();
         protected float statusHeight = 100;
@@ -172,6 +180,10 @@ namespace ModularWeapons2 {
             viewRect_Status = new Rect(0, 0, inRect.width - 16f, statusHeight + 100f);
             //Widgets.Label(inRect, "statusHeight: " + statusHeight);
         }
+
+        //--------------------------------------------------------//
+        //    右側上パネル: 武器プレビュー, パーツ装着箇所選択    //    
+        //--------------------------------------------------------//
         Rect partsButtonRect = new Rect(0, 0, 56, 56);
         protected int selectedPartsIndex = -1;
         //protected MountAdapterClass selectedMount = null;
@@ -185,7 +197,7 @@ namespace ModularWeapons2 {
             //var adapters = weaponComp.Props.partsMounts;
             //var attachedParts = weaponComp.attachedParts;
             Vector2 buttonPosScale = inRect.size * new Vector2(0.40625f, -0.40625f);//0.5 - 0.125 + 0.03125
-            Vector2 linePosScale = inRect.size / new Vector2(weaponDrawSize, -weaponDrawSize);
+            Vector2 linePosScale = inRect.size / weaponDrawSize * new Vector2(1, -2);
             var fontAnchor = Text.Anchor;
             Text.Anchor = TextAnchor.LowerLeft;
             var fontSize = Text.Font;
@@ -230,86 +242,103 @@ namespace ModularWeapons2 {
                 partsTab = new TabRecord(partsTabLabel, () => { SoundDefOf.RowTabSelect.PlayOneShotOnCamera(null); partsTab.selected = true; paintTab.selected = false; }, true); 
                 paintTab = new TabRecord(paintTabLabel, () => { SoundDefOf.RowTabSelect.PlayOneShotOnCamera(null); partsTab.selected = false; paintTab.selected = true; }, false);
             }
+            var fontSize = Text.Font;
+            var fontAnchor = Text.Anchor;
+            var paintRect = new Rect(inRect);
+            paintRect.yMin += Text.LineHeightOf(GameFont.Medium);
             if (selectedPartsIndex < 0) {
-                //Widgets.DrawBoxSolid(inRect, Color.yellow);
-                Widgets.Label(inRect, "Weapon base configulation is not implemented yet.\nPlease select an attatchment.");
+                //ラベル
+                Text.Font = GameFont.Medium;
+                Widgets.Label(new Rect(inRect.x + 4, inRect.y + 2, inRect.width, inRect.height), "MW2_Base".Translate());
+                //塗装
+                DoDecalPaint(paintRect, weaponComp.GetPaintHelperOfBase());
             } else {
                 //ラベル
-                var fontSize = Text.Font;
-                var fontAnchor = Text.Anchor;
                 Text.Font = GameFont.Medium;
                 Widgets.Label(new Rect(inRect.x+4,inRect.y+2,inRect.width,inRect.height), adapters[selectedPartsIndex].mountDef.label.CapitalizeFirst());
 
-                //下部のパーツ選択ボタン
-                Text.Anchor = TextAnchor.LowerLeft;
-                Text.Font = GameFont.Tiny;
-                Rect partsSelectOuterRect = inRect.BottomPartPixels(80);
-                Widgets.DrawWindowBackground(partsSelectOuterRect);
-                partsSelectOuterRect = partsSelectOuterRect.ContractedBy(1, 0);
-                Widgets.ScrollHorizontal(partsSelectOuterRect, ref scrollPos_PartsSelect, viewRect_PartsSelect, 10f);
-                Widgets.BeginScrollView(partsSelectOuterRect, ref scrollPos_PartsSelect, viewRect_PartsSelect, true);
+                //    ----    パーツ交換    ----    //
+                if (partsTab.Selected) {
+                    //下部のパーツ選択ボタン
+                    Text.Anchor = TextAnchor.LowerLeft;
+                    Text.Font = GameFont.Tiny;
+                    Rect partsSelectOuterRect = inRect.BottomPartPixels(80);
+                    Widgets.DrawWindowBackground(partsSelectOuterRect);
+                    partsSelectOuterRect = partsSelectOuterRect.ContractedBy(1, 0);
+                    Widgets.ScrollHorizontal(partsSelectOuterRect, ref scrollPos_PartsSelect, viewRect_PartsSelect, 10f);
+                    Widgets.BeginScrollView(partsSelectOuterRect, ref scrollPos_PartsSelect, viewRect_PartsSelect, true);
 
-                viewRect_PartsSelect.width = 0;
-                foreach(var part in adapters[selectedPartsIndex].GetAttatchableParts()) {
-                    Rect boxRect = new Rect(new Rect(viewRect_PartsSelect.xMax, viewRect_PartsSelect.y, 68, 68));
-                    Rect partButtonRect = new Rect(new Rect(viewRect_PartsSelect.xMax+2, viewRect_PartsSelect.y+1, 64, 66));
-                    Widgets.DrawWindowBackground(boxRect, new Color(1.5f, 1.5f, 1.5f));
-                    if (part == null) {//パーツ削除ボタン
-                        Widgets.Label(partButtonRect, adapters[selectedPartsIndex].mountDef.emptyLabel.CapitalizeFirst());
-                        if (attachedParts[selectedPartsIndex] == null) {
-                            Widgets.DrawHighlightSelected(boxRect);
-                        } else {
-                            if (Mouse.IsOver(boxRect)) {
-                                Widgets.DrawHighlight(boxRect);
+                    viewRect_PartsSelect.width = 0;
+                    foreach (var part in adapters[selectedPartsIndex].GetAttatchableParts()) {
+                        if (part?.Ability != null && weaponThing.def.tickerType != TickerType.Normal) {
+                            continue;
+                        }
+                        Rect boxRect = new Rect(new Rect(viewRect_PartsSelect.xMax, viewRect_PartsSelect.y, 68, 68));
+                        Rect partButtonRect = new Rect(new Rect(viewRect_PartsSelect.xMax + 2, viewRect_PartsSelect.y + 1, 64, 66));
+                        Widgets.DrawWindowBackground(boxRect, new Color(1.5f, 1.5f, 1.5f));
+                        if (part == null) {//パーツ削除ボタン
+                            Widgets.Label(partButtonRect, adapters[selectedPartsIndex].mountDef.emptyLabel.CapitalizeFirst());
+                            if (attachedParts[selectedPartsIndex] == null) {
+                                Widgets.DrawHighlightSelected(boxRect);
+                            } else {
+                                if (Mouse.IsOver(boxRect)) {
+                                    Widgets.DrawHighlight(boxRect);
+                                }
+                                if (Widgets.ButtonInvisible(boxRect, true)) {
+                                    SoundDefOf.Click.PlayOneShotOnCamera();
+                                    //weaponComp.SetPart(selectedPartsIndex, null);
+                                    weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(null));
+                                    OnPartsChanged();
+                                }
                             }
-                            if (Widgets.ButtonInvisible(boxRect, true)) {
-                                SoundDefOf.Click.PlayOneShotOnCamera();
-                                //weaponComp.SetPart(selectedPartsIndex, null);
-                                weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(null));
-                                OnPartsChanged();
+                        } else {//パーツ装着ボタン
+                            var texture = part.graphicData.Graphic.MatSingle.mainTexture;
+                            //Rect textureRect = new Rect(0, 0, texture.width, texture.height) { center = partButtonRect.center };
+                            Widgets.DrawTextureFitted(partButtonRect, texture, part.GUIScale);
+                            Widgets.Label(partButtonRect, part.labelShort.CapitalizeFirst());
+                            if (attachedParts[selectedPartsIndex] == part) {
+                                Widgets.DrawHighlightSelected(boxRect);
+                            } else {
+                                if (Mouse.IsOver(boxRect)) {
+                                    Widgets.DrawHighlight(boxRect);
+                                }
+                                if (Widgets.ButtonInvisible(boxRect, true)) {
+                                    SoundDefOf.Click.PlayOneShotOnCamera();
+                                    //weaponComp.SetPart(selectedPartsIndex, part);
+                                    weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(part));
+                                    OnPartsChanged();
+                                }
                             }
                         }
-                    } else {//パーツ装着ボタン
-                        var texture = part.graphicData.Graphic.MatSingle.mainTexture;
-                        //Rect textureRect = new Rect(0, 0, texture.width, texture.height) { center = partButtonRect.center };
-                        Widgets.DrawTextureFitted(partButtonRect, texture, part.GUIScale);
-                        Widgets.Label(partButtonRect, part.labelShort.CapitalizeFirst());
-                        if (attachedParts[selectedPartsIndex] == part) {
-                            Widgets.DrawHighlightSelected(boxRect);
-                        } else {
-                            if (Mouse.IsOver(boxRect)) {
-                                Widgets.DrawHighlight(boxRect);
-                            }
-                            if (Widgets.ButtonInvisible(boxRect, true)) {
-                                SoundDefOf.Click.PlayOneShotOnCamera();
-                                //weaponComp.SetPart(selectedPartsIndex, part);
-                                weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(part));
-                                OnPartsChanged();
-                            }
-                        }
+                        viewRect_PartsSelect.width += 68;
                     }
-                    viewRect_PartsSelect.width += 68;
-                }
-                viewRect_PartsSelect.width += 1000;
+                    viewRect_PartsSelect.width += 1000;
 
-                Widgets.EndScrollView();
-                scrollPositioner.ScrollHorizontally(ref scrollPos_PartsSelect, partsSelectOuterRect.size);
+                    Widgets.EndScrollView();
+                    scrollPositioner.ScrollHorizontally(ref scrollPos_PartsSelect, partsSelectOuterRect.size);
 
-                //パーツ概要テキスト
-                Text.Anchor = TextAnchor.UpperLeft;
-                Text.Font = GameFont.Small;
-                Rect descRect = new Rect(inRect) {
-                    y = inRect.y + Text.LineHeightOf(GameFont.Medium),
-                    height = inRect.height - Text.LineHeightOf(GameFont.Medium) - 80
-                };
-                Widgets.DrawWindowBackground(descRect, colorFactor);
-                if (attachedParts[selectedPartsIndex] != null) {
-                    //Widgets.DrawWindowBackground(descRect);
-                    attachedParts[selectedPartsIndex].DrawDescription(descRect, weaponComp);
-                } else {
-                    adapters[selectedPartsIndex].DrawEmptyDescription(descRect, weaponComp);
+                    //パーツ概要テキスト
+                    Text.Anchor = TextAnchor.UpperLeft;
+                    Text.Font = GameFont.Small;
+                    Rect descRect = new Rect(inRect) {
+                        y = inRect.y + Text.LineHeightOf(GameFont.Medium),
+                        height = inRect.height - Text.LineHeightOf(GameFont.Medium) - 80
+                    };
+                    Widgets.DrawWindowBackground(descRect, colorFactor);
+                    if (attachedParts[selectedPartsIndex] != null) {
+                        //Widgets.DrawWindowBackground(descRect);
+                        attachedParts[selectedPartsIndex].DrawDescription(descRect, weaponComp);
+                    } else {
+                        adapters[selectedPartsIndex].DrawEmptyDescription(descRect, weaponComp);
+                    }
                 }
-                
+                //    ----    おわり    ----    //
+
+                if (paintTab.Selected) {
+                    //塗装
+                    DoDecalPaint(paintRect, weaponComp.GetPaintHelperOf(adapters[selectedPartsIndex].mountDef));
+                }
+
                 //タブ
                 var tabRect = inRect.TopPartPixels(Text.LineHeightOf(GameFont.Medium)).RightPart(0.25f);
                 tabRect.y += 1;
@@ -326,11 +355,15 @@ namespace ModularWeapons2 {
                 partsTab.Draw(tabRect);
                 if (!partsTab.selected && Widgets.ButtonInvisible(tabRect, true)) partsTab.clickedAction();
 
-                //おかたづけ
-                Text.Anchor = fontAnchor;
-                Text.Font = fontSize;
             }
+            //おかたづけ
+            Text.Anchor = fontAnchor;
+            Text.Font = fontSize;
         }
+
+        //--------------------------------------------------------//
+        //        最下段パネル: 合計コスト表示, 終了ボタン        //    
+        //--------------------------------------------------------//
         protected virtual void DoLowerContents(Rect inRect) {
             Widgets.DrawBox(inRect);
             var cancelButtonRect = inRect.LeftPart(0.125f).ContractedBy(6f);
@@ -359,6 +392,106 @@ namespace ModularWeapons2 {
                 canceled = false;
                 this.Close(true);
             }
+        }
+
+        //塗装
+        bool paintDirty = false;
+        bool currentlyDragging = false;
+        Vector2 decalScrollPos = Vector2.zero;
+        Rect decalViewRect;
+        MWDecalDef clipbordDecalDef = null;
+        Color clipbordColor = Color.white;
+        protected virtual void DoDecalPaint(Rect inRect, DecalPaintHelper target) {
+            var fontAnchor = Text.Anchor;
+            var fontSize = Text.Font;
+            Rect slidersRect = inRect.LeftPart(0.3f);
+            Widgets.DrawWindowBackground(slidersRect);
+            Color colorNew = target.color;
+            //カラーホイール
+            Rect colorWheelRect = new Rect(inRect.x, inRect.y, slidersRect.width, slidersRect.width).ContractedBy(8f);
+            Widgets.HSVColorWheel(colorWheelRect, ref colorNew, ref currentlyDragging);
+            //色スライダー
+            Text.Anchor = TextAnchor.MiddleCenter;
+            Text.Font = GameFont.Tiny;
+            slidersRect.yMin += slidersRect.width;
+            slidersRect.x += 8;
+            slidersRect.width -= 16;
+            slidersRect.height /= 4;
+            Color contentColor = GUI.color;
+            Widgets.Label(slidersRect, "R:"+ colorNew.r);
+            GUI.color = Color.red;
+            colorNew.r = Mathf.Round(GUI.HorizontalSlider(slidersRect, colorNew.r, 0f, 1f) * 20f) / 20f;
+            slidersRect.y += slidersRect.height;
+            GUI.color = contentColor;
+            Widgets.Label(slidersRect, "G:"+ colorNew.g);
+            GUI.color = Color.green;
+            colorNew.g = Mathf.Round(GUI.HorizontalSlider(slidersRect, colorNew.g, 0f, 1f) * 20f) / 20f;
+            slidersRect.y += slidersRect.height;
+            GUI.color = contentColor;
+            Widgets.Label(slidersRect, "B:"+ colorNew.b);
+            GUI.color = Color.blue;
+            colorNew.b = Mathf.Round(GUI.HorizontalSlider(slidersRect, colorNew.b, 0f, 1f) * 20f) / 20f;
+            slidersRect.y += slidersRect.height;
+            GUI.color = contentColor;
+            if (colorNew != target.color) {
+                SoundDefOf.DragSlider.PlayOneShotOnCamera();
+                target.color = colorNew;
+                paintDirty = true;
+            }
+            Text.Anchor = fontAnchor;
+            Text.Font = fontSize;
+
+            //コピペボタン
+            slidersRect.width = slidersRect.height;
+            if(Widgets.ButtonImageFitted(slidersRect, TexButton.Copy)) {
+                SoundDefOf.Tick_High.PlayOneShotOnCamera();
+                clipbordDecalDef = target.decalDef;
+                clipbordColor = target.color;
+            }
+            slidersRect.x += slidersRect.width;
+            if (clipbordDecalDef != null && Widgets.ButtonImageFitted(slidersRect, TexButton.Paste)) {
+                SoundDefOf.Tick_Low.PlayOneShotOnCamera();
+                target.decalDef= clipbordDecalDef;
+                target.color = clipbordColor;
+                paintDirty = true;
+            }
+
+            //迷彩柄
+            Rect selecterRect = inRect.RightPart(0.7f);
+            Widgets.DrawWindowBackground(selecterRect);
+            float rectHeight = 0;
+            float rectWidth = selecterRect.width - 16;
+            Vector2 buttonSize = Vector2.one * (rectWidth / 5);
+            var allDecals = MWDecalDef.GetAllDecalDefs().ToArray();
+            Widgets.BeginScrollView(selecterRect, ref decalScrollPos, decalViewRect);
+            int rowCount = 0;
+            for (int i = 0; i < allDecals.Length; i++) {
+                Rect buttonRect = new Rect(rowCount * buttonSize.x, rectHeight, buttonSize.x, buttonSize.y);
+                GUI.DrawTexture(buttonRect.ContractedBy(4f), allDecals[i]?.graphicData.Graphic.MatSingle.mainTexture ?? BaseContent.BadTex);
+                if (Mouse.IsOver(buttonRect)) {
+                    Widgets.DrawHighlight(buttonRect);
+                }
+                if (target.decalDef== allDecals[i]) {
+                    Widgets.DrawHighlightSelected(buttonRect);
+                }
+                if (Widgets.ButtonInvisible(buttonRect)) {
+                    target.decalDef = allDecals[i];
+                    paintDirty = true;
+                }
+                rowCount++;
+                if (rowCount > 4) {
+                    rectHeight += buttonSize.y;
+                    rowCount = 0;
+                }
+            }
+            Widgets.EndScrollView();
+            decalViewRect = new Rect(0, 0, rectWidth, rectHeight + buttonSize.y);
+            //更新処理
+            if (paintDirty && !Input.GetMouseButton(0)) {
+                OnPartsChanged();
+                paintDirty = false;
+            }
+
         }
 
         protected virtual void CalcRectSizes(Rect inRect) {

@@ -33,13 +33,12 @@ namespace ModularWeapons2 {
             if (parent != null) {
                 result += parent.offset;
             }
-            if (Mathf.Abs(result.y) < 0.01f) {
+            if (Mathf.Abs(result.y) < 1E-45f) {
                 result.y = (mountDef.label[0] % 2) > 0 ? 0.75f : -0.75f;
             } else {
                 result.y = result.y > 0 ? 0.9375f : -0.9375f;
             }
             result.x = Mathf.Min(result.x * 2.5f, 0.9375f);
-            //result = result.normalized;
             normalizedOffset_cache = result;
         }
         public static void ResetAdaptersParent(IEnumerable<MountAdapterClass> children, MountAdapterClass parent = null) {

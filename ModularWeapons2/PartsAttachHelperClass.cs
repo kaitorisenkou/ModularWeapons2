@@ -8,7 +8,12 @@ namespace ModularWeapons2 {
         [DefaultValue(null)]
         public ModularPartsMountDef attachMountDef = null;
     }
-    public struct PartsAttachHelper {
+    public struct PartsAttachHelper :IExposable {
+        public void ExposeData() {
+            Scribe_Defs.Look(ref partsDef, "partsDef");
+            Scribe_Defs.Look(ref attachMountDef, "attachMountDef");
+        }
+
         public ModularPartsDef partsDef;
         //public string attachTag;
         public ModularPartsMountDef attachMountDef;
@@ -53,5 +58,6 @@ namespace ModularWeapons2 {
             }
             return false;
         }
+
     }
 }

@@ -9,5 +9,6 @@ namespace ModularWeapons2 {
         }
         public static JobDef ConsumeIngredientsForGunsmith;
         public static JobDef UseGunsmithStation;
+        public static MWDecalDef MW2Decal_Forest;
     }
 }

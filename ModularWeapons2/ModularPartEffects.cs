@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 
 namespace ModularWeapons2 {
     public struct ModularPartEffects {
@@ -14,12 +15,17 @@ namespace ModularWeapons2 {
         public List<MountAdapterClass> additionalAdapters;
         public List<Tool> tools;
         public MWAbilityProperties ability;
+        public MWTacDevice tacDevice;
 
         public IEnumerable<(string, Color)> GetStatChangeTexts(CompModularWeapon weapon = null) {
             var builder = new StringBuilder();
             Color color = Color.white;
 
-            //TODO verbPropsOffsetの表示
+            if (verbPropsOffset != null) {
+                foreach(var i in verbPropsOffset.GetStatChangeTexts()) {
+                    yield return i;
+                }
+            }
 
             if (statOffsets != null) {
                 foreach (var i in statOffsets) {
@@ -71,7 +77,6 @@ namespace ModularWeapons2 {
                 foreach (var tool in tools) {
                     builder.Clear();
                     builder.Append("MW2_DescMeleeTool".Translate());
-                    builder.Append(": ");
                     builder.Append(tool.label);
                     builder.Append(" (");
                     builder.Append(string.Join(",",tool.capacities.Select(t=>t.label)));
@@ -81,8 +86,17 @@ namespace ModularWeapons2 {
                 }
             }
 
-            //TODO アビリティの文章
+            //アビリティの文章
+            if (ability != null) {
+                builder.Clear();
+                builder.Append("MW2_DescAbility".Translate());
+                builder.Append(ability.abilityDef.label);
+                yield return (builder.ToString(), Color.white);
+            }
 
+            if(tacDevice!=null && !tacDevice.descriptionString.NullOrEmpty()) {
+                yield return (tacDevice.descriptionString, Color.white);
+            }
         }
     }
 }
