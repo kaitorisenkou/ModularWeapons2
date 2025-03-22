@@ -15,3 +15,6 @@ In current version, only the following 3 weapons can be customized:<br>
 * Assault rifle (Vanilla) バニラの軍用ライフル
 * Bolt-action rifle (Vanilla) バニラのライフル
 * Modular assault carbine モジュラーアサルトカービン
+
+
+See also: [ModularizeToolkit](https://github.com/kaitorisenkou/MW2_ModularizeToolkit)
