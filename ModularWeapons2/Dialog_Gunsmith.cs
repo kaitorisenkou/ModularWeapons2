@@ -210,7 +210,8 @@ namespace ModularWeapons2 {
                 partsButtonRect.center = inRect.center + adapter.NormalizedOffsetForUI * buttonPosScale;
                 if (selectedPartsIndex == i) {
                     Widgets.DrawLine(inRect.center + (adapter.offset + weaponComp.AdapterTextureOffset[i]) * linePosScale, partsButtonRect.center, Color.white, 1f);
-                    Widgets.DrawHighlightSelected(partsButtonRect);
+                    //Widgets.DrawHighlightSelected(partsButtonRect);
+                    Widgets.DrawWindowBackground(partsButtonRect.ExpandedBy(4f));
                 }
                 Widgets.DrawWindowBackground(partsButtonRect);
                 if (attachedParts[i] != null) {
@@ -229,11 +230,15 @@ namespace ModularWeapons2 {
             Text.Anchor = fontAnchor;
             Text.Font = fontSize;
         }
+
+        //--------------------------------//
+        //    右側下パネル: パーツ編集    //    
+        //--------------------------------//
         protected Vector2 scrollPos_PartsSelect = new Vector2();
         protected Rect viewRect_PartsSelect = new Rect(0, 0, 0, 64);
         private ScrollPositioner scrollPositioner = new ScrollPositioner();
-        protected string partsTabLabel = "MW2_Parts".ToString();
-        protected string paintTabLabel = "MW2_Paint".ToString();
+        protected string partsTabLabel = "MW2_Parts".Translate();
+        protected string paintTabLabel = "MW2_Paint".Translate();
         protected TabRecord partsTab = null;
         protected TabRecord paintTab = null;
         protected readonly Color colorFactor = new Color(1f, 1f, 1f, 0.5f);
@@ -277,7 +282,7 @@ namespace ModularWeapons2 {
                         Rect partButtonRect = new Rect(new Rect(viewRect_PartsSelect.xMax + 2, viewRect_PartsSelect.y + 1, 64, 66));
                         Widgets.DrawWindowBackground(boxRect, new Color(1.5f, 1.5f, 1.5f));
                         if (part == null) {//パーツ削除ボタン
-                            Widgets.Label(partButtonRect, adapters[selectedPartsIndex].mountDef.emptyLabel.CapitalizeFirst());
+                            Widgets.Label(partButtonRect, adapters[selectedPartsIndex].mountDef.EmptyLabel.CapitalizeFirst());
                             if (attachedParts[selectedPartsIndex] == null) {
                                 Widgets.DrawHighlightSelected(boxRect);
                             } else {

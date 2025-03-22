@@ -125,7 +125,17 @@ namespace ModularWeapons2 {
                 AccessTools.Method(typeof(VerbTracker), nameof(VerbTracker.ExposeData)),
                 prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_VerbTrackerExpose), null));
 
+            harmony.Patch(
+                AccessTools.Method(typeof(StatDef), nameof(StatDef.IsImmutable)),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_IsImmutable), null));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(StatDef), "PopulateMutableStats"),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_PopulateMutableStats), null));
+
             Log.Message("[MW2] Harmony patch complete!");
+
+            StatDef.SetImmutability();
 
             MW2Mod.statDefsShow.AddRange(new StatDef[] {
                 StatDefOf.Mass,
@@ -144,6 +154,9 @@ namespace ModularWeapons2 {
                 "Stat_Thing_Weapon_RangedWarmupTime_Desc".Translate(),
                 "RangedWarmupTime".Translate(),
                 StatDefOf.EquipDelay.label.CapitalizeFirst()
+            });
+            MW2Mod.statDefsForceNonImmutable.AddRange(new StatDef[]{
+                StatDefOf.RangedWeapon_Cooldown
             });
             Log.Message("[MW2] Misc initializations complete!");
         }
@@ -188,7 +201,7 @@ namespace ModularWeapons2 {
             if (comp == null) {
                 return;
             }
-            __result |= Math.Abs(comp.GetEquippedOffset(stat)) > 1E-45f;
+            __result |= Mathf.Approximately(comp.GetEquippedOffset(stat), 0);
         }
 
 
@@ -507,6 +520,30 @@ namespace ModularWeapons2 {
                 return false;
             }
             return true;
+        }
+
+
+        static void Postfix_IsImmutable(ref bool __result, StatDef __instance) {
+            __result = false;
+            __instance.cacheable = false;
+            /*
+            if (__result) {
+                __result = !MW2Mod.statDefsForceNonImmutable.Contains(__instance);
+            }
+            */
+        }
+        static void Postfix_PopulateMutableStats(ref HashSet<StatDef> ___mutableStats) {
+            Log.Message("[MW2] Postfix_PopulateMutableStats done");
+            foreach(var i in DefDatabase<ModularPartsDef>.AllDefsListForReading) {
+                if (i.StatFactors != null)
+                    foreach (var j in i.StatFactors) {
+                        ___mutableStats.Add(j.stat);
+                    }
+                if (i.StatOffsets != null)
+                    foreach (var j in i.StatOffsets) {
+                        ___mutableStats.Add(j.stat);
+                    }
+            }
         }
     }
 }

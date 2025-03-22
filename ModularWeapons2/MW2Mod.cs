@@ -9,6 +9,7 @@ namespace ModularWeapons2 {
         public static List<StatDef> statDefsShow = new List<StatDef>();
         public static List<StatCategoryDef> statCategoryShow = new List<StatCategoryDef>();
         public static List<string> lessIsBetter = new List<string>();
+        public static List<StatDef> statDefsForceNonImmutable = new List<StatDef>();
 
         public MW2Mod(ModContentPack content) : base(content) {
             

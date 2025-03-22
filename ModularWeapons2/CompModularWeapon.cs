@@ -342,10 +342,12 @@ namespace ModularWeapons2 {
             }
             for (int i = 0; i < MountAdapters.Count; i++) {
                 if (attachedParts[i] == null) continue;
-                var offset = MountAdapters[i].offset + adapterTextureOffset[i];
-                if (MountAdapters[i].adapterGraphic != null) {
+                //var offset = MountAdapters[i].offset + adapterTextureOffset[i];
+                var offset = MountAdapters[i].GetOffsetFor(attachedParts[i]) + adapterTextureOffset[i];
+                var adapterGra = MountAdapters[i].GetAdapterGraphicFor(attachedParts[i]);
+                if (adapterGra != null) {
                     yield return new MWCameraRenderer.MWCameraRequest(
-                        MountAdapters[i].adapterGraphic.Graphic.MatSingle,
+                        adapterGra.Graphic.MatSingle,
                         offset,
                         MountAdapters[i].layerOrder
                         );
@@ -440,7 +442,7 @@ namespace ModularWeapons2 {
                     StringBuilder stringBuilder = new StringBuilder(pair.stat.description);
                     stringBuilder.AppendLine();
                     stringBuilder.AppendLine();
-                    stringBuilder.AppendLine("MW2_StatsReport_ByCustomParts" + ": " + pair.stat.ValueToString(pair.value, ToStringNumberSense.Offset, pair.stat.finalizeEquippedStatOffset));
+                    stringBuilder.AppendLine("MW2_StatsReport_ByCustomParts".Translate() + ": " + pair.stat.ValueToString(pair.value, ToStringNumberSense.Offset, pair.stat.finalizeEquippedStatOffset));
                     float value = StatWorker.StatOffsetFromGear(parent, pair.stat);
                     yield return new StatDrawEntry(StatCategoryDefOf.EquippedStatOffsets, pair.stat, value, StatRequest.ForEmpty(), ToStringNumberSense.Offset, null, true).SetReportText(stringBuilder.ToString());
                 }
@@ -460,23 +462,25 @@ namespace ModularWeapons2 {
         }
         public override float GetStatFactor(StatDef stat) {
             float value = base.GetStatFactor(stat);
-            if (!attachedParts.NullOrEmpty()) {
-                for (int i = 0; i < mountAdapters.Count; i++) {
-                    ModularPartEffects effects = GetPartEffectsAt(i);
-                    var mod = effects.statFactors?.FirstOrFallback(t => t != null && t.stat == stat, null);
-                    value += mod == null ? 0 : mod.value;
-                }
+            if (attachedParts.NullOrEmpty()) {
+                return value;
+            }
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                ModularPartEffects effects = GetPartEffectsAt(i);
+                var mod = effects.statFactors?.FirstOrFallback(t => t != null && t.stat == stat, null);
+                value += mod == null ? 0 : mod.value;
             }
             return value;
         }
         public override float GetStatOffset(StatDef stat) {
             float value = base.GetStatOffset(stat);
-            if (!attachedParts.NullOrEmpty()) {
-                for (int i = 0; i < mountAdapters.Count; i++) {
-                    ModularPartEffects effects = GetPartEffectsAt(i);
-                    var mod = effects.statOffsets?.FirstOrFallback(t => t != null && t.stat == stat, null);
-                    value += mod == null ? 0 : mod.value;
-                }
+            if (attachedParts.NullOrEmpty()) {
+                return value;
+            }
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                ModularPartEffects effects = GetPartEffectsAt(i);
+                var mod = effects.statOffsets?.FirstOrFallback(t => t != null && t.stat == stat, null);
+                value += mod == null ? 0 : mod.value;
             }
             return value;
         }

@@ -6,6 +6,7 @@ using static HarmonyLib.Code;
 
 namespace ModularWeapons2 {
     public class ModularPartsDef : Def {
+        [NoTranslate]
         public string labelShort;
         public ModularPartsMountDef attachedTo;
         public GraphicData graphicData;

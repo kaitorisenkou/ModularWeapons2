@@ -33,8 +33,8 @@ namespace ModularWeapons2 {
             if (parent != null) {
                 result += parent.offset;
             }
-            if (Mathf.Abs(result.y) < 1E-45f) {
-                result.y = (mountDef.label[0] % 2) > 0 ? 0.75f : -0.75f;
+            if (Mathf.Approximately(result.y, 0)) {
+                result.y = (mountDef.label[0] % 3) > 0 ? 0.75f : -0.75f;
             } else {
                 result.y = result.y > 0 ? 0.9375f : -0.9375f;
             }
@@ -84,7 +84,7 @@ namespace ModularWeapons2 {
             var rectCenter = new Rect(rectLeft) { x = rectLeft.xMax };
             Widgets.DrawWindowBackground(rectLeft, colorFactor);
             float labelHeight = Text.LineHeightOf(GameFont.Small) * 2;
-            Widgets.Label(rectLeft.TopPartPixels(labelHeight).ContractedBy(4f), mountDef.emptyLabel.CapitalizeFirst());
+            Widgets.Label(rectLeft.TopPartPixels(labelHeight).ContractedBy(4f), mountDef.EmptyLabel.CapitalizeFirst());
             rectLeft.y += labelHeight;
             rectLeft.height -= labelHeight;
             if (mountDef.emptyDescription.NullOrEmpty()) {
@@ -102,6 +102,51 @@ namespace ModularWeapons2 {
             }
             listingStandard.End();
             GUI.color = tmpColor;
+        }
+
+        public Vector2 GetOffsetFor(ModularPartsDef partsDef) {
+            Vector2 result = Vector2.zero;
+            if(TryGetOffsetFor(partsDef.attachedTo, ref result)) {
+                return result;
+            }
+            return this.offset;
+        }
+        bool TryGetOffsetFor(ModularPartsMountDef mountDef, ref Vector2 parentOffset) {
+            parentOffset += this.offset;
+            if (this.mountDef == mountDef)
+                return true;
+            if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
+                return false;
+            }
+            foreach(var i in this.mountDef.canAdaptAs) {
+                if (i.TryGetOffsetFor(mountDef, ref parentOffset)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public GraphicData GetAdapterGraphicFor(ModularPartsDef partsDef) {
+            if (TryAdapterGraphicFor(partsDef.attachedTo, out GraphicData result)) {
+                return result;
+            }
+            return this.adapterGraphic;
+        }
+        bool TryAdapterGraphicFor(ModularPartsMountDef mountDef, out GraphicData result) {
+            if (this.mountDef == mountDef) {
+                result = this.adapterGraphic;
+                return true;
+            }
+            result = null;
+            if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
+                return false;
+            }
+            foreach (var i in this.mountDef.canAdaptAs) {
+                if (i.TryAdapterGraphicFor(mountDef, out GraphicData newResult)) {
+                    result = newResult ?? this.adapterGraphic;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
