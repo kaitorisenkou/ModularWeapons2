@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Verse;
+using Verse.Noise;
 using static HarmonyLib.Code;
 
 namespace ModularWeapons2 {
@@ -103,16 +104,21 @@ namespace ModularWeapons2 {
             return weapon?.parent.Stuff ?? ThingDefOf.Cloth;
         }
 
+        Vector2 scrollPos_statChanges = Vector2.zero;
+        Rect viewRect_statChanges = new Rect();
         protected virtual void DrawStatChanges(Rect rect, CompModularWeapon weapon = null) {
             var tmpColor = GUI.color;
-            Listing_Standard listingStandard = new Listing_Standard();
-            listingStandard.verticalSpacing = -6f;
-            listingStandard.Begin(rect);
+            var lineHeight = Text.LineHeightOf(GameFont.Small);
+            Rect textRect = new Rect(0, 0, rect.width - 16f, lineHeight);
+            Widgets.BeginScrollView(rect, ref scrollPos_statChanges, viewRect_statChanges, true);
             foreach (var i in effects.GetStatChangeTexts(weapon)) {
+                textRect.height = Text.CalcHeight(i.Item1, textRect.width);
                 GUI.color = i.Item2;
-                listingStandard.Label(i.Item1);
+                Widgets.Label(textRect, i.Item1);
+                textRect.y += textRect.height;
             }
-            listingStandard.End();
+            Widgets.EndScrollView();
+            viewRect_statChanges = new Rect(0, 0, rect.width - 16f, textRect.y);
             GUI.color = tmpColor;
         }
 

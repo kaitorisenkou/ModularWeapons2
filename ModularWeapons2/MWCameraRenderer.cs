@@ -1,32 +1,44 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
 using Verse.Noise;
+using static RimWorld.MechClusterSketch;
 
 namespace ModularWeapons2 {
     public class MWCameraRenderer : MonoBehaviour {
         public static void Render(RenderTexture renderTexture, CompModularWeapon targetWeapon) {
+            mwCameraRenderer.requests = targetWeapon.GetRequestsForRenderCam().OrderBy(t => t.layerOrder);
+            RenderInt(renderTexture);
+        }
+        public static void Render(RenderTexture renderTexture, params MWCameraRequest[] requests) {
+            mwCameraRenderer.requests = requests.OrderBy(t => t.layerOrder);
+            RenderInt(renderTexture);
+        }
+        static void RenderInt(RenderTexture renderTexture) {
             float orthographicSize = mwCamera.orthographicSize;
-            mwCameraRenderer.targetWeaponInt = targetWeapon;
             mwCamera.SetTargetBuffers(renderTexture.colorBuffer, renderTexture.depthBuffer);
             mwCamera.Render();
-            mwCameraRenderer.targetWeaponInt = null;
+            mwCameraRenderer.requests = null;
             mwCamera.orthographicSize = orthographicSize;
             mwCamera.targetTexture = null;
         }
-        CompModularWeapon targetWeaponInt = null;
+        //CompModularWeapon targetWeaponInt = null;
+        IEnumerable<MWCameraRequest> requests = null;
         public void OnPostRender() {
-            foreach(var i in targetWeaponInt.GetRequestsForRenderCam().OrderBy(t=>t.layerOrder)) {
+            if (requests == null) return;
+            foreach (var i in requests) {
+                if (i.material == null) continue;
                 var matrix = new Matrix4x4();
-                matrix.SetTRS(i.offset, Quaternion.identity, Vector3.one);
-                GenDraw.DrawMeshNowOrLater(MeshMakerPlanes.NewPlaneMesh(1f, false), Quaternion.Euler(90, 0, 0) * i.offset, Quaternion.identity, i.material, true);
+                matrix.SetTRS(i.offset, i.rotation, i.scale);
+                GenDraw.DrawMeshNowOrLater(i.mesh, matrix, i.material, true);
             }
         }
         private static Camera mwCamera = InitCamera();
         private static MWCameraRenderer mwCameraRenderer;
         private static Camera InitCamera() {
-            GameObject gameObject = new GameObject("MWCamera", new Type[]{typeof(Camera)});
+            GameObject gameObject = new GameObject("MWCamera", new Type[] { typeof(Camera) });
             gameObject.SetActive(false);
             gameObject.AddComponent<MWCameraRenderer>();
             UnityEngine.Object.DontDestroyOnLoad(gameObject);
@@ -48,13 +60,54 @@ namespace ModularWeapons2 {
         }
         public struct MWCameraRequest {
             public Material material;
-            public Vector2 offset;
+            public Vector3 offset;
             public int layerOrder;
-            public MWCameraRequest(Material material, Vector2 offset, int layerOrder) {
+            public Vector3 scale;
+            public Quaternion rotation;
+            public Mesh mesh;
+
+            public MWCameraRequest(Material material, Vector2 offset, int layerOrder, Vector2 scale, float angle = 0) {
                 this.material = material;
-                this.offset = offset;
+                this.offset = new Vector3(offset.x, 0, offset.y);
                 this.layerOrder = layerOrder;
+                this.scale = new Vector3(Mathf.Abs(scale.x), 1, Mathf.Abs(scale.y));
+                this.rotation = Quaternion.AngleAxis(angle, Vector3.up);
+                this.mesh = Meshes[(scale.x < 0 ? 1 : 0) + (scale.y < 0 ? 2 : 0)];
+            }
+            public MWCameraRequest(Material material, Vector2 offset, int layerOrder)
+                : this(material, offset, layerOrder, Vector2.one, 0) {
             }
         }
+
+
+        static Lazy<Mesh[]> meshes = new Lazy<Mesh[]>(
+            () => {
+                var normal = MeshMakerPlanes.NewPlaneMesh(1f, false);
+                var vertFlipped = new Mesh();
+                vertFlipped.name = "MW2Mesh_vertf";
+                vertFlipped.vertices = normal.vertices;
+                vertFlipped.uv = new Vector2[] { new Vector2(0, 1), new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), };
+                vertFlipped.SetTriangles(normal.triangles, 0);
+                vertFlipped.RecalculateNormals();
+                vertFlipped.RecalculateBounds();
+                var bothFlipped = new Mesh();
+                bothFlipped.name = "MW2Mesh_bothf";
+                bothFlipped.vertices = normal.vertices;
+                bothFlipped.uv = new Vector2[] { new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, 1), };
+                bothFlipped.SetTriangles(normal.triangles, 0);
+                bothFlipped.RecalculateNormals();
+                bothFlipped.RecalculateBounds();
+                return new Mesh[]{
+                normal,
+                MeshMakerPlanes.NewPlaneMesh(1f, true),
+                vertFlipped,
+                bothFlipped
+                };
+            });
+        static Mesh[] Meshes => meshes.Value;
+        public static Mesh NormalMesh => Meshes[0];
+        public static Mesh MeshHoriFlipped => Meshes[1];
+        public static Mesh MeshVertFlipped => Meshes[2];
+        public static Mesh MeshBothFlipped => Meshes[3];
     }
 }

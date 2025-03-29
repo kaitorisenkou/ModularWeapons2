@@ -9,6 +9,7 @@ namespace ModularWeapons2 {
         //public string tagString = null;
         public ModularPartsMountDef mountDef;
         public Vector2 offset = Vector2.zero;
+        public Vector2 scale = Vector2.one;
         public int layerOrder = 0;
         [DefaultValue(null)]
         public GraphicData adapterGraphic = null;
@@ -112,19 +113,54 @@ namespace ModularWeapons2 {
             return this.offset;
         }
         bool TryGetOffsetFor(ModularPartsMountDef mountDef, ref Vector2 parentOffset) {
-            parentOffset += this.offset;
-            if (this.mountDef == mountDef)
+            if (this.mountDef == mountDef) {
+                parentOffset += this.offset;
                 return true;
+            }
             if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
                 return false;
             }
             foreach(var i in this.mountDef.canAdaptAs) {
                 if (i.TryGetOffsetFor(mountDef, ref parentOffset)) {
+                    parentOffset += this.offset;
                     return true;
                 }
             }
             return false;
         }
+
+        public IEnumerable<MWCameraRenderer.MWCameraRequest> GetAdapterCRFor(ModularPartsDef partsDef, Vector2 adapterTextureOffset, int layerOrder) {
+            List<MWCameraRenderer.MWCameraRequest> result = new List<MWCameraRenderer.MWCameraRequest>();
+            TryGetAdapterCRFor(partsDef.attachedTo, layerOrder, adapterTextureOffset, Vector2.one, ref result);
+            return result;
+        }
+        bool TryGetAdapterCRFor(ModularPartsMountDef mountDef, int layerOrder, Vector2 offset, Vector2 scale, ref List<MWCameraRenderer.MWCameraRequest> result) {
+            var newOffset = offset+this.offset;
+            var newScale = scale*this.scale;
+            if (this.mountDef == mountDef) {
+                if (this.adapterGraphic != null) {
+                    result.Add(new MWCameraRenderer.MWCameraRequest(
+                        this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale)
+                    );
+                }
+                return true;
+            }
+            if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
+                return false;
+            }
+            foreach (var i in this.mountDef.canAdaptAs) {
+                if (i.TryGetAdapterCRFor(mountDef, layerOrder, newOffset, newScale, ref result)) {
+                    if (this.adapterGraphic != null) {
+                        result.Add(new MWCameraRenderer.MWCameraRequest(
+                            this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale)
+                            );
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+        /*
         public GraphicData GetAdapterGraphicFor(ModularPartsDef partsDef) {
             if (TryAdapterGraphicFor(partsDef.attachedTo, out GraphicData result)) {
                 return result;
@@ -143,6 +179,28 @@ namespace ModularWeapons2 {
             foreach (var i in this.mountDef.canAdaptAs) {
                 if (i.TryAdapterGraphicFor(mountDef, out GraphicData newResult)) {
                     result = newResult ?? this.adapterGraphic;
+                    return true;
+                }
+            }
+            return false;
+        }
+        */
+        public Vector2 GetScaleFor(ModularPartsDef partsDef) {
+            Vector2 result = Vector2.one;
+            if (TryGetScaleFor(partsDef.attachedTo, ref result)) {
+                return result;
+            }
+            return this.offset;
+        }
+        bool TryGetScaleFor(ModularPartsMountDef mountDef, ref Vector2 parentOffset) {
+            parentOffset *= this.scale;
+            if (this.mountDef == mountDef)
+                return true;
+            if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
+                return false;
+            }
+            foreach (var i in this.mountDef.canAdaptAs) {
+                if (i.TryGetScaleFor(mountDef, ref parentOffset)) {
                     return true;
                 }
             }

@@ -26,9 +26,29 @@ namespace ModularWeapons2 {
                     yield return i;
                 }
             }
+            if (weapon != null && statOffsets!=null && statFactors!=null) {
+                var _statFactors = statFactors;
+                var weaponDef = weapon.parent.def;
+                var doubledStat = statOffsets.Where(t => _statFactors.Any(tt => tt.stat == t.stat));
+                foreach(var i in doubledStat) {
+                    builder.Clear();
+                    float valueSum = weaponDef.statBases.FirstOrFallback(t => t.stat == i.stat, null)?.value ?? 0;
+                    valueSum = ((valueSum + i.value) * (1 + (statFactors.FirstOrFallback(t => t.stat == i.stat, null)?.value ?? 0))) - valueSum;
+                    valueSum = Mathf.Round(valueSum * 100f) / 100f;
+                    float statValue = (i.stat.ToStringStyleUnfinalized.ToString().Contains("Percent") ? valueSum * 100 : valueSum);
+                    if (statValue > 0) { builder.Append("+"); }
+                    builder.Append(statValue.ToString());
+                    builder.Append(" ");
+                    builder.Append(i.stat.label);
+                    if (valueSum > 0 ^ !MW2Mod.lessIsBetter.Contains(i.stat.label.CapitalizeFirst())) {
+                        color = Color.red;
+                    } else {
+                        color = Color.green;
+                    }
+                    yield return (builder.ToString(), color);
 
-            if (statOffsets != null) {
-                foreach (var i in statOffsets) {
+                }
+                foreach (var i in statOffsets.Where(t => !doubledStat.Any(tt => tt.stat == t.stat))) {
                     builder.Clear();
                     float statValue = (i.stat.ToStringStyleUnfinalized.ToString().Contains("Percent") ? i.value * 100 : i.value);
                     if (statValue > 0) { builder.Append("+"); }
@@ -42,9 +62,7 @@ namespace ModularWeapons2 {
                     }
                     yield return (builder.ToString(), color);
                 }
-            }
-            if (statFactors != null) {
-                foreach (var i in statFactors) {
+                foreach (var i in statFactors.Where(t => !doubledStat.Any(tt => tt.stat == t.stat))) {
                     builder.Clear();
                     if (i.value > 0) builder.Append("+");
                     builder.Append(i.value.ToStringPercent());
@@ -56,6 +74,38 @@ namespace ModularWeapons2 {
                         color = Color.green;
                     }
                     yield return (builder.ToString(), color);
+                }
+            } else {
+                if (statOffsets != null) {
+                    foreach (var i in statOffsets) {
+                        builder.Clear();
+                        float statValue = (i.stat.ToStringStyleUnfinalized.ToString().Contains("Percent") ? i.value * 100 : i.value);
+                        if (statValue > 0) { builder.Append("+"); }
+                        builder.Append(statValue.ToString());
+                        builder.Append(" ");
+                        builder.Append(i.stat.label);
+                        if (i.value > 0 ^ !MW2Mod.lessIsBetter.Contains(i.stat.label.CapitalizeFirst())) {
+                            color = Color.red;
+                        } else {
+                            color = Color.green;
+                        }
+                        yield return (builder.ToString(), color);
+                    }
+                }
+                if (statFactors != null) {
+                    foreach (var i in statFactors) {
+                        builder.Clear();
+                        if (i.value > 0) builder.Append("+");
+                        builder.Append(i.value.ToStringPercent());
+                        builder.Append(" ");
+                        builder.Append(i.stat.label);
+                        if (i.value > 0 ^ !MW2Mod.lessIsBetter.Contains(i.stat.label.CapitalizeFirst())) {
+                            color = Color.red;
+                        } else {
+                            color = Color.green;
+                        }
+                        yield return (builder.ToString(), color);
+                    }
                 }
             }
             if (equippedStatOffsets != null) {

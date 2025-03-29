@@ -344,20 +344,28 @@ namespace ModularWeapons2 {
                 if (attachedParts[i] == null) continue;
                 //var offset = MountAdapters[i].offset + adapterTextureOffset[i];
                 var offset = MountAdapters[i].GetOffsetFor(attachedParts[i]) + adapterTextureOffset[i];
-                var adapterGra = MountAdapters[i].GetAdapterGraphicFor(attachedParts[i]);
+                var scale = MountAdapters[i].GetScaleFor(attachedParts[i]);
+                /*var adapterGra = MountAdapters[i].GetAdapterGraphicFor(attachedParts[i]);
                 if (adapterGra != null) {
                     yield return new MWCameraRenderer.MWCameraRequest(
                         adapterGra.Graphic.MatSingle,
                         offset,
-                        MountAdapters[i].layerOrder
+                        MountAdapters[i].layerOrder, 
+                        scale
                         );
+                }*/
+                var adapterCRs = 
+                    MountAdapters[i].GetAdapterCRFor(attachedParts[i], adapterTextureOffset[i], MountAdapters[i].layerOrder);
+                foreach(var cr in adapterCRs) {
+                    yield return cr;
                 }
                 if (attachedParts[i].graphicData != null) {
                     var partMat = attachedParts[i].graphicData.Graphic.MatSingle;
                     yield return new MWCameraRenderer.MWCameraRequest(
                         partMat,
                         offset,
-                        MountAdapters[i].layerOrder
+                        MountAdapters[i].layerOrder,
+                        scale
                         );
 
                     var decal = decalHelpers.FirstOrFallback(t => t.attachMountDef == MountAdapters[i].mountDef);
@@ -365,7 +373,8 @@ namespace ModularWeapons2 {
                         yield return new MWCameraRenderer.MWCameraRequest(
                             decal.GetMaskedMaterial(partMat.mainTexture),
                             offset,
-                            MountAdapters[i].layerOrder
+                            MountAdapters[i].layerOrder,
+                            scale
                             );
                     }
                 }
