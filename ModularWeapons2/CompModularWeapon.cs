@@ -34,8 +34,9 @@ namespace ModularWeapons2 {
         public override void PostExposeData() {
             base.PostExposeData();
             Scribe_Collections.Look(ref attachedParts, "attachedParts", true, LookMode.Def);
-            Scribe_Collections.Look(ref attachedParts_buffer, "attachedParts_buffer", true, LookMode.Def);
+            //Scribe_Collections.Look(ref attachedParts_buffer, "attachedParts_buffer", true, LookMode.Def);
             Scribe_Collections.Look(ref attachHelpers, "attachHelpers", LookMode.Deep);
+            Scribe_Collections.Look(ref attachHelpers_buffer, "attachHelpers_buffer", LookMode.Deep);
             Scribe_Collections.Look(ref decalHelpers, "decalHelpers", LookMode.Deep, new object[] { null, null, null });
             Scribe_Deep.Look(ref verbTracker, "verbTracker", new object[] { this });
             Scribe_Deep.Look(ref ability, "ability", Array.Empty<object>());
@@ -97,6 +98,7 @@ namespace ModularWeapons2 {
         //      ここからパーツ脱着関連        //
         //------------------------------------//
         protected List<PartsAttachHelper> attachHelpers = new List<PartsAttachHelper>();
+        protected List<PartsAttachHelper> attachHelpers_buffer = new List<PartsAttachHelper>();
         public IReadOnlyList<MountAdapterClass> MountAdapters {
             get {
                 if (mountAdapters.NullOrEmpty())
@@ -110,7 +112,7 @@ namespace ModularWeapons2 {
             get => adapterTextureOffset;
         }
         protected List<ModularPartsDef> attachedParts = Enumerable.Empty<ModularPartsDef>().ToList();
-        protected List<ModularPartsDef> attachedParts_buffer = Enumerable.Empty<ModularPartsDef>().ToList();
+        //protected List<ModularPartsDef> attachedParts_buffer = Enumerable.Empty<ModularPartsDef>().ToList();
         public IReadOnlyList<ModularPartsDef> AttachedParts {
             get => attachedParts;
         }
@@ -157,8 +159,8 @@ namespace ModularWeapons2 {
             RefleshParts();
         }
         public virtual void SetPartsWithBuffer() {
-            //SetParts(attachedParts_buffer);
-            attachedParts = new List<ModularPartsDef>(attachedParts_buffer);
+            //attachedParts = new List<ModularPartsDef>(attachedParts_buffer);
+            attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
             RefleshParts();
         }
         protected virtual void RefleshParts(bool scribe = false) {
@@ -206,7 +208,7 @@ namespace ModularWeapons2 {
         }
 
         public virtual void BufferCurrent(bool overrideBuffer = false) {
-            if (overrideBuffer || attachedParts_buffer.NullOrEmpty()) {
+            /*if (overrideBuffer || attachedParts_buffer.NullOrEmpty()) {
                 attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
                 //attachedParts_buffer = attachedParts.ListFullCopy();
             } else {
@@ -214,25 +216,41 @@ namespace ModularWeapons2 {
                 attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
                 //SetParts(tmp);
                 attachedParts = tmp;
+            }*/
+            if (overrideBuffer || attachHelpers_buffer.NullOrEmpty()) {
+                attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
+                //attachedParts_buffer = attachedParts.ListFullCopy();
+            } else {
+                var tmp = attachHelpers_buffer;
+                attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
+                //SetParts(tmp);
+                attachHelpers = tmp;
             }
+            RefleshParts();
         }
         public virtual void RevertToBuffer() {
-            if (attachedParts_buffer.NullOrEmpty()) {
+            /*if (attachedParts_buffer.NullOrEmpty()) {
                 Log.Warning("[MW2] RevertToBuffer() ran, but buffer is null!");
                 return;
             }
-            attachedParts = new List<ModularPartsDef>(attachedParts_buffer);
+            attachedParts = new List<ModularPartsDef>(attachedParts_buffer);*/
+            if (attachHelpers_buffer.NullOrEmpty()) {
+                Log.Warning("[MW2] RevertToBuffer() ran, but buffer is null!");
+                return;
+            }
+            attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
+            RefleshParts();
         }
         public virtual IEnumerable<(ThingDef, int)> GetIngredient_Current() {
             return sorted_GetIngredient(attachedParts);
         }
         public virtual IEnumerable<(ThingDef, int)> GetIngredient_Buffer() {
-            return sorted_GetIngredient(attachedParts_buffer);
+            return sorted_GetIngredient(attachHelpers_buffer);
         }
         IEnumerable<(ThingDef, int)> requestCache = null;
         public virtual IEnumerable<(ThingDef, int)> GetRequiredIngredients() {
             if (requestCache == null) {
-                requestCache = int_GetIngredient(attachedParts_buffer)
+                requestCache = int_GetIngredient(attachHelpers_buffer)
                     .Concat(int_GetIngredient_minus(attachedParts))
                     .GroupBy(t => t.Item1)
                     .Select(t => (t.Key, t.Sum(t2 => t2.Item2)));
@@ -245,12 +263,27 @@ namespace ModularWeapons2 {
                 .GroupBy(t => t.Item1)
                 .Select(t => (t.Key, t.Sum(t2 => t2.Item2)));
         }
+        IEnumerable<(ThingDef, int)> sorted_GetIngredient(List<PartsAttachHelper> helpers) {
+            return int_GetIngredient(helpers)
+                .GroupBy(t => t.Item1)
+                .Select(t => (t.Key, t.Sum(t2 => t2.Item2)));
+        }
         IEnumerable<(ThingDef, int)> int_GetIngredient(List<ModularPartsDef> parts) {
             foreach (var i in parts) {
                 if (i == null)
                     continue;
                 yield return (parent.Stuff ?? ThingDefOf.Steel, i.stuffCost);
                 foreach (var j in i.costList) {
+                    yield return (j.thingDef, j.count);
+                }
+            }
+        }
+        IEnumerable<(ThingDef, int)> int_GetIngredient(List<PartsAttachHelper> helpers) {
+            foreach (var i in helpers) {
+                if (i.partsDef == null)
+                    continue;
+                yield return (parent.Stuff ?? ThingDefOf.Steel, i.partsDef.stuffCost);
+                foreach (var j in i.partsDef.costList) {
                     yield return (j.thingDef, j.count);
                 }
             }
