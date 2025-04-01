@@ -15,8 +15,8 @@ Allows some weapons to be customized at the Gunsmith Workbench. Also some new we
 <br>いくつかの武器をガンスミス作業台でカスタマイズできるようになるMODです。新規の武器も追加されます。武器をカスタマイズすると、外見や性能が変化します。
       
       
-In current version (Alpha1.01 Hotfix1), only the following 3 weapons can be customized:
-<br>現在のバージョン(Alpha1.01 Hotfix1)では以下の3つのみをカスタマイズできます:
+In current version (Alpha1.01 Hotfix1), only the following weapons can be customized:
+<br>現在のバージョン(Alpha1.01 Hotfix1)では以下の武器をカスタマイズできます:
 * Modular assault carbine モジュラーアサルトカービン
 * Assault rifle (Vanilla) バニラの軍用ライフル
 * Bolt-action rifle (Vanilla) バニラのライフル
