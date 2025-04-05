@@ -92,6 +92,7 @@ namespace ModularWeapons2 {
                 builder.Clear();
                 builder.Append("MW2_ChangeCaliber".Translate());
                 builder.Append(projectileOverride.label);
+                color = Color.white;
                 yield return (builder.ToString(), color);
             }
         }

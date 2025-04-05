@@ -101,8 +101,10 @@ namespace ModularWeapons2 {
         protected List<PartsAttachHelper> attachHelpers_buffer = new List<PartsAttachHelper>();
         public IReadOnlyList<MountAdapterClass> MountAdapters {
             get {
-                if (mountAdapters.NullOrEmpty())
+                if (mountAdapters.NullOrEmpty()) {
                     mountAdapters = Props.partsMounts.Select(t => (MountAdapterClass)t).ToList();
+                    //MountAdapterClass.SetDistancedForUI(mountAdapters.ToArray());
+                }
                 return mountAdapters;
             }
         }
@@ -230,12 +232,12 @@ namespace ModularWeapons2 {
         }
         public virtual void RevertToBuffer() {
             /*if (attachedParts_buffer.NullOrEmpty()) {
-                Log.Warning("[MW2] RevertToBuffer() ran, but buffer is null!");
+                Log.Warning("[MW2] RevertToBuffer() called, but buffer is null!");
                 return;
             }
             attachedParts = new List<ModularPartsDef>(attachedParts_buffer);*/
             if (attachHelpers_buffer.NullOrEmpty()) {
-                Log.Warning("[MW2] RevertToBuffer() ran, but buffer is null!");
+                Log.Warning("[MW2] RevertToBuffer() called, but buffer is null!");
                 return;
             }
             attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
@@ -488,6 +490,19 @@ namespace ModularWeapons2 {
                     float value = StatWorker.StatOffsetFromGear(parent, pair.stat);
                     yield return new StatDrawEntry(StatCategoryDefOf.EquippedStatOffsets, pair.stat, value, StatRequest.ForEmpty(), ToStringNumberSense.Offset, null, true).SetReportText(stringBuilder.ToString());
                 }
+            }
+            if (!attachedParts.NullOrEmpty()) {
+                StringBuilder sb = new StringBuilder("MW2_SpecialStatDesc".Translate());
+                sb.AppendLine();
+                sb.AppendLine();
+                if (attachedParts.Count(t => t != null) < 1) {
+                    sb.AppendLine("MW2_SpecialStatEmpty".Translate());
+                }
+                foreach(var i in attachedParts) {
+                    if (i == null) continue;
+                    sb.AppendLine(i.label.CapitalizeFirst().Indented());
+                }
+                yield return new StatDrawEntry(StatCategoryDefOf.Basics, "MW2_SpecialStatLabel".Translate(), attachedParts.Count(t => t != null).ToString(), sb.ToString(), 0);
             }
         }
 

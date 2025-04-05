@@ -202,6 +202,7 @@ namespace ModularWeapons2 {
             Text.Anchor = TextAnchor.LowerLeft;
             var fontSize = Text.Font;
             Text.Font = GameFont.Tiny;
+            MountAdapterClass.SetDistancedForUI(adapters.ToArray());
             for(int i=0;i<adapters.Count;i++) {
                 if (i >= adapters.Count || i >= attachedParts.Count) {
                     break;
