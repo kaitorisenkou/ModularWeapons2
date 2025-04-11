@@ -27,73 +27,91 @@ namespace ModularWeapons2 {
             return props;
         }
 
-        public IEnumerable<(string, Color)> GetStatChangeTexts() {
+        public IEnumerable<(TaggedString, int)> GetStatChangeTexts() {
             var builder = new StringBuilder();
-            Color color = Color.white;
+            //Color color = Color.white;
 
             if (!Mathf.Approximately(warmupTime, 0)) {
+                builder.Append("RangedWarmupTime".Translate());
+                builder.Append(" ");
                 if (warmupTime > 0) {
+                    builder.Append("<color=\"red\">");
                     builder.Append("+");
-                    color = Color.red;
+                    //color = Color.red;
                 } else {
-                    color = Color.green;
+                    builder.Append("<color=\"green\">");
+                    //color = Color.green;
 
                 }
                 builder.Append(warmupTime.ToString("0.##"));
                 builder.Append("LetterSecond".Translate());
-                builder.Append(" ");
-                builder.Append("RangedWarmupTime".Translate());
-                yield return (builder.ToString(), color);
+                builder.Append("</color>");
+                //yield return (builder.ToString(), color);
+                yield return (builder.ToString(),3555);
+                builder.Clear();
             }
 
             if (!Mathf.Approximately(range, 0)) {
-                builder.Clear();
+                builder.Append("Range".Translate());
+                builder.Append(" ");
                 if (range > 0) {
+                    builder.Append("<color=\"green\">");
                     builder.Append("+");
-                    color = Color.green;
+                    //color = Color.green;
                 } else {
-                    color = Color.red;
+                    builder.Append("<color=\"red\">");
+                    //color = Color.red;
                 }
                 builder.Append(range.ToString());
-                builder.Append(" ");
-                builder.Append("Range".Translate());
-                yield return (builder.ToString(), color);
+                builder.Append("</color>");
+                //yield return (builder.ToString(), color);
+                yield return (builder.ToString(),5390);
+                builder.Clear();
             }
 
             if (burstShotCount != 0) {
-                builder.Clear();
+                builder.Append("BurstShotCount".Translate());
+                builder.Append(" ");
                 if (burstShotCount > 0) {
+                    builder.Append("<color=\"green\">");
                     builder.Append("+");
-                    color = Color.green;
+                    //color = Color.green;
                 } else {
-                    color = Color.red;
+                    builder.Append("<color=\"red\">");
+                    //color = Color.red;
                 }
                 builder.Append(burstShotCount.ToString());
-                builder.Append(" ");
-                builder.Append("BurstShotCount".Translate());
-                yield return (builder.ToString(), color);
+                builder.Append("</color>");
+                //yield return (builder.ToString(), color);
+                yield return (builder.ToString(),5391);
+                builder.Clear();
             }
 
             if (ticksBetweenBurstShots != 0) {
-                builder.Clear();
+                builder.Append("BurstShotFireRate".Translate());
+                builder.Append(" ");
                 if (ticksBetweenBurstShots > 0) {
+                    builder.Append("<color=\"red\">");
                     builder.Append("+");
-                    color = Color.red;
+                    //color = Color.red;
                 } else {
-                    color = Color.green;
+                    builder.Append("<color=\"green\">");
+                    //color = Color.green;
                 }
                 builder.Append(ticksBetweenBurstShots.ToString());
-                builder.Append("ticks ");
-                builder.Append("BurstShotFireRate".Translate());
-                yield return (builder.ToString(), color);
+                builder.Append("ticks</color>");
+                //yield return (builder.ToString(), color);
+                yield return (builder.ToString(),5392);
+                builder.Clear();
             }
 
             if (projectileOverride != null) {
-                builder.Clear();
                 builder.Append("MW2_ChangeCaliber".Translate());
                 builder.Append(projectileOverride.label);
-                color = Color.white;
-                yield return (builder.ToString(), color);
+                //color = Color.white;
+                //yield return (builder.ToString(), color);
+                yield return (builder.ToString(),5500);
+                builder.Clear();
             }
         }
     }

@@ -33,27 +33,20 @@ namespace ModularWeapons2 {
             if (adapters.Any(t => !t.normalizedOffset_cache.HasValue)) {
                 return;
             }
+            adapters = adapters.OrderBy(t => Mathf.Abs(t.normalizedOffset_cache.Value.x - 0.5f)).ToArray();
             int infiLoopDetector = 10000;
             for (int i = 0; i < adapters.Length; i++) {
                 if (infiLoopDetector < 0) break;
-                for (int j = i - 1; j > 0; j--) {
+                for (int j = i - 1; j >= 0; j--) {
                     infiLoopDetector--;
                     if (infiLoopDetector < 0) break;
-                    var dist = Vector2.Distance(adapters[i].NormalizedOffsetForUI, adapters[j].NormalizedOffsetForUI);
-                    if (dist < 0.25f) {
-                        var dir = SquareNormalized(adapters[j].NormalizedOffsetForUI - adapters[i].NormalizedOffsetForUI);
-                        adapters[i].normalizedOffset_cache = adapters[j].NormalizedOffsetForUI + (dir * 0.25f);
+                    var distVec = adapters[i].NormalizedOffsetForUI- adapters[j].NormalizedOffsetForUI;
+                    if (distVec.magnitude < 0.25f || (Mathf.Abs(distVec.x) < 0.25f && Mathf.Abs(distVec.y) < 0.25f)) {
+                        adapters[i].normalizedOffset_cache = adapters[j].NormalizedOffsetForUI + ((distVec.x > 0 ? Vector2.right : Vector2.left) * 0.25f);
                         j = i - 1;
                     }
                 }
             }
-        }
-        static Vector2 SquareNormalized(Vector2 v) {
-            v = v.normalized;
-            if (v.magnitude < 0.01f) {
-                return v.x < 0 ? Vector2.right : Vector2.left;
-            }
-            return v / Mathf.Max(v.x, v.y);
         }
         public void SetParentAdapter(MountAdapterClass parent) {
             var result = offset;
@@ -123,8 +116,8 @@ namespace ModularWeapons2 {
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.verticalSpacing = -6f;
             listingStandard.Begin(rectCenter);
-            foreach (var i in effectsWhenEmpty.GetStatChangeTexts(weapon)) {
-                GUI.color = i.Item2;
+            foreach (var i in effectsWhenEmpty.GetStatChangeTexts(weapon).OrderByDescending(t => t.Item2)) {
+                //GUI.color = i.Item2;
                 listingStandard.Label(i.Item1);
             }
             listingStandard.End();

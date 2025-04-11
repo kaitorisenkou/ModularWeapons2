@@ -1,5 +1,6 @@
 ﻿using RimWorld;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Verse;
 using Verse.Noise;
@@ -111,9 +112,9 @@ namespace ModularWeapons2 {
             var lineHeight = Text.LineHeightOf(GameFont.Small);
             Rect textRect = new Rect(0, 0, rect.width - 16f, lineHeight);
             Widgets.BeginScrollView(rect, ref scrollPos_statChanges, viewRect_statChanges, true);
-            foreach (var i in effects.GetStatChangeTexts(weapon)) {
+            foreach (var i in effects.GetStatChangeTexts(weapon).OrderByDescending(t=>t.Item2)) {
                 textRect.height = Text.CalcHeight(i.Item1, textRect.width);
-                GUI.color = i.Item2;
+                //GUI.color = i.Item2;
                 Widgets.Label(textRect, i.Item1);
                 textRect.y += textRect.height;
             }

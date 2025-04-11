@@ -4,6 +4,7 @@ using Verse;
 namespace ModularWeapons2 {
     public class ModularPartsMountDef : Def {
         public List<MountAdapterClass> canAdaptAs = new List<MountAdapterClass>();
+        public ModularPartsDef fallbackPart = null;
         [DefaultValue(true)]
         public bool allowEmpty = true;
         public string emptyLabel = "";

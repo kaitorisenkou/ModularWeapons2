@@ -195,6 +195,9 @@ namespace ModularWeapons2 {
             List<ModularPartsDef> targetList = new ModularPartsDef[count].ToList();
             for (int i = 0; i < count; i++) {
                 PartsAttachHelper helper = attachHelpers.LastOrDefault(t => t.CanAttachTo(mountAdapters[i]));
+                if (helper.partsDef == null && !mountAdapters[i].mountDef.allowEmpty) {
+                    helper = new PartsAttachHelper(mountAdapters[i].mountDef.fallbackPart, mountAdapters[i].mountDef);
+                }
                 if (helper.partsDef != null) {
                     var part = helper.partsDef;
                     targetList[i] = part;

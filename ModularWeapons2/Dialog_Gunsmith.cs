@@ -203,7 +203,7 @@ namespace ModularWeapons2 {
             var fontSize = Text.Font;
             Text.Font = GameFont.Tiny;
             MountAdapterClass.SetDistancedForUI(adapters.ToArray());
-            for(int i=0;i<adapters.Count;i++) {
+            for (int i = 0; i < adapters.Count; i++) {
                 if (i >= adapters.Count || i >= attachedParts.Count) {
                     break;
                 }
@@ -230,6 +230,21 @@ namespace ModularWeapons2 {
             }
             Text.Anchor = fontAnchor;
             Text.Font = fontSize;
+
+            //左右キーで選択切替
+            if (Event.current.type == EventType.KeyDown) {
+                if (Event.current.keyCode == KeyCode.D) {
+                    SoundDefOf.Click.PlayOneShotOnCamera();
+                    selectedPartsIndex = Mathf.RoundToInt(Mathf.Repeat(selectedPartsIndex + 1, adapters.Count));
+                }
+                if (Event.current.keyCode == KeyCode.A) {
+                    SoundDefOf.Click.PlayOneShotOnCamera();
+                    selectedPartsIndex = Mathf.RoundToInt(Mathf.Repeat(selectedPartsIndex - 1, adapters.Count));
+                }
+                if (DebugSettings.godMode&& Event.current.keyCode == KeyCode.W) {
+                    Log.Message("[MW2] i:" + selectedPartsIndex + " in " + adapters.Count + ", " + adapters[selectedPartsIndex].NormalizedOffsetForUI);
+                }
+            }
         }
 
         //--------------------------------//
