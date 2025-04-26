@@ -13,6 +13,7 @@ namespace ModularWeapons2 {
         public int ticksBetweenBurstShots = 0;
         public SoundDef soundCastOverride = null;
         public ThingDef projectileOverride = null;
+        public int priority = 0;
 
         public VerbProperties AffectVerbProps(VerbProperties props) {
             props.warmupTime += this.warmupTime;

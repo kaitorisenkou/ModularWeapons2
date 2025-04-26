@@ -562,10 +562,16 @@ namespace ModularWeapons2 {
         public IEnumerable<VerbProperties> CalcVerbPropertiesForOverride() {
             foreach (var verbProp in parent.def.Verbs) {
                 var clone = verbProp.MemberwiseClone();
+                /*
                 for (int i = 0; i < mountAdapters.Count; i++) {
                     var offset = GetPartEffectsAt(i).verbPropsOffset;
                     if (offset == null) continue;
                     offset.AffectVerbProps(clone);
+                }
+                */
+                var offsets = mountAdapters.Select((t, i) => GetPartEffectsAt(i).verbPropsOffset).Where(t => t != null).OrderBy(t => t.priority);
+                foreach(var i in offsets) {
+                    i.AffectVerbProps(clone);
                 }
                 yield return clone;
             }
