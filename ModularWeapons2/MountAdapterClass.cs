@@ -53,10 +53,10 @@ namespace ModularWeapons2 {
             if (parent != null) {
                 result += parent.offset;
             }
-            if (Mathf.Approximately(result.y, 0)) {
-                result.y = (mountDef.label[0] % 3) > 0 ? 0.75f : -0.75f;
+            if (Mathf.Approximately(offset.y, 0)) {
+                result.y = (mountDef.label[0] % 3) > 2 ? 0.75f : -0.75f;
             } else {
-                result.y = result.y > 0 ? 0.9375f : -0.9375f;
+                result.y = offset.y > 0 ? 0.9375f : -0.9375f;
             }
             result.x = Mathf.Min(result.x * 2.5f, 0.9375f);
             normalizedOffset_cache = result;

@@ -181,6 +181,7 @@ namespace ModularWeapons2 {
                 tools = null;
                 verbPropertiesCached = null;
                 abilityDirty = true;
+                parent.TryGetComp<CompEquippable>()?.verbTracker?.InitVerbsFromZero();
                 verbTracker.InitVerbsFromZero();
                 Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             }
@@ -569,10 +570,11 @@ namespace ModularWeapons2 {
                     offset.AffectVerbProps(clone);
                 }
                 */
-                var offsets = mountAdapters.Select((t, i) => GetPartEffectsAt(i).verbPropsOffset).Where(t => t != null).OrderBy(t => t.priority);
+                var offsets = mountAdapters.Select((_, i) => GetPartEffectsAt(i).verbPropsOffset).Where(t => t != null).OrderBy(t => t.priority);
                 foreach(var i in offsets) {
                     i.AffectVerbProps(clone);
                 }
+                //Log.Message("[MW2]sound result: " + clone.soundCast.defName);
                 yield return clone;
             }
         }
