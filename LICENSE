@@ -1,0 +1,109 @@
+** English version is below the Japanese version. **
+
+
+Kaitorisenkou's License Core
+Kaitorisenkouライセンス コア
+Version 1.00  (最終更新: 2025-05-03)
+
+- 本ライセンスにおける「正規利用者」とは、開発者が指定する配布元から本製品を入手／ダウンロードした者を指す。
+
+- 本製品の「正規利用者」は以下の行為が許される。
+  - 個人利用
+  - 二次著作物の作成（ソフトウェア、動画、画像、文章など）
+  - 開発者へのバグ報告およびフィードバック
+
+- バグ報告およびフィードバックは、READMEや概要欄で示された連絡手段のみで受け付ける。
+
+- 正規/非正規にかかわらず、以下の行為は禁止とする。
+  - 新規性や進歩性を欠いた本製品の再配布
+  - 違法または悪意ある目的による、開発者の金銭的利益、心身の健康、名誉に損害を与える行為
+
+- 正規/非正規にかかわらず、利用者が法令に違反した場合、その責任はすべて利用者が負うものとする。
+
+- 本製品は現状のままで提供されており、いかなる明示的または黙示的な保証も行わない。本製品の使用に起因して、使用者のデバイス、ソフトウェア、周辺機器、データ等に損害が生じた場合、責任はすべて利用者が負うものとする。
+
+- 本製品に関連して紛争が生じた場合、開発者の居住する国（現在は日本）に所在する裁判所を、第一審の専属的合意管轄裁判所とする。
+
+- このライセンスは変更される場合があり、常に最新版が適用されるものとする。
+
+
+ModularWeapons2 Specific License Definitions
+ModularWeapons2特定ライセンス定義
+Version 1.00  (最終更新: 2025-05-03)
+
+- 本文書は、Kaitorisenkou's License Core (以下「KLC」)を本製品に適用する際の補足定義を示すものである。
+
+- 本文書とKLCを併せて「本ライセンス群」と称する。
+
+- 本ライセンス群における「本製品」とは、ModularWeapons2 (Kaitorisenkouによって開発されたRimworld用MOD) を指す。
+
+- 本製品は以下の製品に関連しており、それらのライセンス/EULAの条件にも従うものとする。  
+  本ライセンス群と矛盾がある場合は、以下のライセンスが優先される。
+  - RimWorld (Ludeon Studio)
+
+- 開発者が指定する本製品の配布元は、以下の通りである。
+  - Github (https://github.com/kaitorisenkou/ModularWeapons2/releases)
+  - Steam Workshop (予定)
+
+- 本ライセンス群は変更される場合があり、常に最新版が適用されるものとする。
+
+
+## 要するに...
+- 悪い事しようとか考えるなよ
+- ちゃんとした所からダウンロードしな
+- 上2つを守ってれば好きに使っていいし、新しい作品を作ってもいいぞ
+- ライセンスが更新されたらちゃんと見に来いよ
+
+----
+
+
+Kaitorisenkou's License Core
+Version 1.00  (Last update: 2025-05-03)
+
+- In this license, "Authorized Users" refers only to those who obtained or downloaded the product from the distribution sources designated by the developer.
+
+- The following actions are permitted for "Authorized Users" of this product:
+  - Personal use
+  - Creation of derivative works (e.g., software, videos, images, written content, etc.)
+  - Bug reports and feedback to the developer
+
+- Bug reports and feedback will only be accepted through the channels specified in the README or description.
+
+- Regardless of whether a user is authorized or not, the following actions are prohibited:
+  - Redistribution of this product, in whole or in part, without meaningful modification or original contribution
+  - Any illegal or malicious acts that cause or intend to cause harm to the developer's financial interests, mental or physical health, or reputation of the developer
+
+- Regardless of authorization status, if a user violates applicable laws, the user assumes full responsibility.
+
+- This product is provided "as is" without any warranties, express or implied. The developer shall not be liable for any damage to devices, software, peripherals, or data resulting from the use of this product.
+
+- Any disputes arising in connection with this product shall be subject to the exclusive jurisdiction of the courts located in the developer’s country of residence (currently Japan), in the first instance.
+
+- This license may be updated. The most current version of this license shall always apply.
+
+
+ModularWeapons2 Specific License Definitions
+Version 1.00  (Last update: 2025-05-03)
+
+- This document provides supplementary definitions for the application of Kaitorisenkou's License Core (hereinafter "KLC") to this product.
+
+- This document and KLC are collectively referred to as "the Licenses".
+
+- For purposes of the Licenses, "Product" refers to ModularWeapons2, a Rimworld mod developed by Kaitorisenkou.
+
+- This product incorporates or depends on the following third-party products, and is subject to their licenses or EULAs.  
+  In the event of any conflict with this license, the following licenses shall take precedence:
+  * RimWorld (Ludeon Studio)
+
+- The distribution sources of this product specified by the developer are as follows:
+  - Github (https://github.com/kaitorisenkou/ModularWeapons2/releases)
+  - Steam Workshop (planned)
+
+- This document may be updated. The most current version of this license shall always apply.
+
+
+## In a nutshell...
+- Don't be a bad guy
+- Download from official sources
+- As long as you follow these rules, you're free to use this and even make new stuff
+- If the licenses gets updated, make sure to check back
