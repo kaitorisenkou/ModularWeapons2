@@ -21,7 +21,6 @@ namespace ModularWeapons2 {
             props.burstShotCount += this.burstShotCount;
             props.ticksBetweenBurstShots += this.ticksBetweenBurstShots;
             if (soundCastOverride != null) {
-                //Log.Message("[MW2]sound override: " + soundCastOverride.defName);
                 props.soundCast = soundCastOverride;
             }
             if (projectileOverride != null)

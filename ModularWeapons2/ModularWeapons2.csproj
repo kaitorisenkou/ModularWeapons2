@@ -68,7 +68,9 @@
     <Compile Include="Building_GunsmithStation.cs" />
     <Compile Include="CompModularWeapon.cs" />
     <Compile Include="CompProperties_ModularWeapon.cs" />
+    <Compile Include="Dialog_GunSaveList.cs" />
     <Compile Include="Dialog_Gunsmith.cs" />
+    <Compile Include="Dialog_RenameGunsmith.cs" />
     <Compile Include="Graphic_UniqueByComp.cs" />
     <Compile Include="GunsmithPresetDef.cs" />
     <Compile Include="ICompUniqueGraphic.cs" />
@@ -82,7 +84,7 @@
     <Compile Include="MW2DefOf.cs" />
     <Compile Include="MW2Mod.cs" />
     <Compile Include="MWAbilityProperties.cs" />
-    <Compile Include="MWDebugActions.cs" />
+    <Compile Include="MWDebug.cs" />
     <Compile Include="MWCameraRenderer.cs" />
     <Compile Include="MWDecalDef.cs" />
     <Compile Include="MWTacDevice.cs" />

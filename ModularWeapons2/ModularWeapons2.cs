@@ -44,7 +44,6 @@ namespace ModularWeapons2 {
             var types_PlaceHauledThingInCell = typeof(Toils_Haul).GetNestedTypes(AccessTools.all);
             bool isFound_PlaceHauledThingInCell = false;
             foreach (var i in types_PlaceHauledThingInCell) {
-                //Log.Message(i.Name);
                 MethodInfo method = i.FirstMethod(t => t.Name.Contains("PlaceHauledThingInCell"));
                 if (method != null) {
                     harmony.Patch(method, null, null,
@@ -533,7 +532,7 @@ namespace ModularWeapons2 {
             */
         }
         static void Postfix_PopulateMutableStats(ref HashSet<StatDef> ___mutableStats) {
-            Log.Message("[MW2] Postfix_PopulateMutableStats done");
+            MWDebug.LogMessage("[MW2] Postfix_PopulateMutableStats done");
             foreach(var i in DefDatabase<ModularPartsDef>.AllDefsListForReading) {
                 if (i.StatFactors != null)
                     foreach (var j in i.StatFactors) {

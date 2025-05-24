@@ -25,6 +25,10 @@ namespace ModularWeapons2 {
         }
         protected override float Margin => 4f;
 
+        public static Lazy<Texture2D> saveTex=new Lazy<Texture2D>(()=> ContentFinder<Texture2D>.Get("UI/Gunsmith/Save", true));
+        public static Lazy<Texture2D> loadTex = new Lazy<Texture2D>(() => ContentFinder<Texture2D>.Get("UI/Gunsmith/Load", true));
+        public static Lazy<Texture2D> renameTex => new Lazy<Texture2D>(() => TexUI.RenameTex);
+
         public CompModularWeapon weaponComp;
         public Thing weaponThing;
         public Graphic weaponGraphic;
@@ -132,7 +136,22 @@ namespace ModularWeapons2 {
 
             Text.Font = fontSize;
             Text.Anchor = fontAnchor;
+
+            saveButtonRect.center = new Vector2(inRect.xMax - saveButtonSpace / 2, inRect.center.y);
+            if (Widgets.ButtonImage(saveButtonRect, loadTex.Value, true, "Load".Translate())) {
+                Find.WindowStack.Add(new Dialog_Gunsmith_Load(weaponComp, () => { OnPartsChanged(); }));
+            }
+            saveButtonRect.x -= saveButtonSpace;
+            if (Widgets.ButtonImage(saveButtonRect, saveTex.Value, true, "Save".Translate())) {
+                Find.WindowStack.Add(new Dialog_Gunsmith_Save(weaponThing, weaponComp.weaponOverrideLabel));
+            }
+            saveButtonRect.x -= saveButtonSpace;
+            if(Widgets.ButtonImage(saveButtonRect, renameTex.Value, true, "Rename".Translate())) {
+                Find.WindowStack.Add(new Dialog_RenameGunsmith(weaponComp));
+            }
         }
+        readonly float saveButtonSpace = 48;
+        Rect saveButtonRect = new Rect(0, 0, 32, 32);
 
         //--------------------------------------//
         //      左側パネル: ステータス表示      //    
@@ -241,8 +260,8 @@ namespace ModularWeapons2 {
                     SoundDefOf.Click.PlayOneShotOnCamera();
                     selectedPartsIndex = Mathf.RoundToInt(Mathf.Repeat(selectedPartsIndex - 1, adapters.Count));
                 }
-                if (DebugSettings.godMode&& Event.current.keyCode == KeyCode.W) {
-                    Log.Message("[MW2] i:" + selectedPartsIndex + " in " + adapters.Count + ", " + adapters[selectedPartsIndex].NormalizedOffsetForUI);
+                if (Event.current.keyCode == KeyCode.W) {
+                    MWDebug.LogMessage("[MW2] i:" + selectedPartsIndex + " in " + adapters.Count + ", " + adapters[selectedPartsIndex].NormalizedOffsetForUI);
                 }
             }
         }

@@ -14,7 +14,7 @@ using static HarmonyLib.Code;
 using static UnityEngine.Random;
 
 namespace ModularWeapons2 {
-    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner, IReloadableComp, ICompWithCharges {
+    public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner, IReloadableComp, ICompWithCharges, IRenameable {
         public CompProperties_ModularWeapon Props {
             get {
                 return (CompProperties_ModularWeapon)this.props;
@@ -24,15 +24,13 @@ namespace ModularWeapons2 {
         public override void Initialize(CompProperties props) {
             base.Initialize(props);
             //attachedParts = Props.partsMounts.Select(t => t.defaultPart).ToList();
-            //Log.Message("[MW2]parts count: " + attachedParts.Count);
             if (verbTracker == null)
                 verbTracker = new VerbTracker(this);
             SetParts(Props.defaultParts);
             RefleshParts();
         }
         //セーブ
-        public override void PostExposeData() {
-            base.PostExposeData();
+        void ScribeInt() {
             Scribe_Collections.Look(ref attachedParts, "attachedParts", true, LookMode.Def);
             //Scribe_Collections.Look(ref attachedParts_buffer, "attachedParts_buffer", true, LookMode.Def);
             Scribe_Collections.Look(ref attachHelpers, "attachHelpers", LookMode.Deep);
@@ -41,6 +39,11 @@ namespace ModularWeapons2 {
             Scribe_Deep.Look(ref verbTracker, "verbTracker", new object[] { this });
             Scribe_Deep.Look(ref ability, "ability", Array.Empty<object>());
             Scribe_Values.Look(ref abilityDirty, "abilityDirty", defaultValue: true);
+            Scribe_Values.Look(ref weaponOverrideLabel, "weaponOverrideLabel", defaultValue: "");
+        }
+        public override void PostExposeData() {
+            base.PostExposeData();
+            ScribeInt();
             if (Scribe.mode != LoadSaveMode.Saving) {
                 RefleshParts(true);
             }
@@ -52,6 +55,20 @@ namespace ModularWeapons2 {
                 }
             }
         }
+        public string fileName;
+        public CMW_Exposer CreateExposer() {
+            return new CMW_Exposer(
+                this.attachHelpers,
+                this.decalHelpers,
+                this.weaponOverrideLabel
+                );
+        }
+        public void UnpackExposer(CMW_Exposer exposer) {
+            this.decalHelpers = exposer.decalHelpers;
+            this.weaponOverrideLabel = exposer.weaponOverrideLabel;
+            SetParts(exposer.attachHelpers);
+        }
+
         static protected Pawn GetOwner(Thing thing) {
             if (thing == null) {
                 return null;
@@ -65,6 +82,7 @@ namespace ModularWeapons2 {
             }
             return null;
         }
+
         //NPC用ランダマイズ&アビリティ更新
         bool onceEquipped;
         public override void Notify_Equipped(Pawn pawn) {
@@ -84,14 +102,6 @@ namespace ModularWeapons2 {
         }
         public override void Notify_Unequipped(Pawn pawn) {
             pawn.abilities.Notify_TemporaryAbilitiesChanged();
-        }
-        //武器の名前
-        protected string weaponOverrideLabel = "";
-        public override string TransformLabel(string label) {
-            if (string.IsNullOrEmpty(weaponOverrideLabel)) {
-                return base.TransformLabel(label);
-            }
-            return weaponOverrideLabel;
         }
 
         //------------------------------------//
@@ -165,7 +175,7 @@ namespace ModularWeapons2 {
             attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
             RefleshParts();
         }
-        protected virtual void RefleshParts(bool scribe = false) {
+        public virtual void RefleshParts(bool scribe = false) {
             attachedParts = SolveAttachHelpers(attachHelpers);
             if (attachedParts.NullOrEmpty()) {
                 cachedEOStats = Enumerable.Empty<(StatDef, float)>();
@@ -260,7 +270,6 @@ namespace ModularWeapons2 {
                     .Concat(int_GetIngredient_minus(attachedParts))
                     .GroupBy(t => t.Item1)
                     .Select(t => (t.Key, t.Sum(t2 => t2.Item2)));
-                //Log.Message("[MW2] ingredients cached");
             }
             return requestCache;
         }
@@ -314,7 +323,7 @@ namespace ModularWeapons2 {
                 );
             if (!allDefs.Any()) {
                 //TODO 完全ランダム
-                Log.Message("[MW2]no presetDefs found: " + parentDef);
+                MWDebug.LogWarning("[MW2]no presetDefs found: " + parentDef);
                 return;
             }
             var def = allDefs.RandomElement();
@@ -574,7 +583,6 @@ namespace ModularWeapons2 {
                 foreach(var i in offsets) {
                     i.AffectVerbProps(clone);
                 }
-                //Log.Message("[MW2]sound result: " + clone.soundCast.defName);
                 yield return clone;
             }
         }
@@ -676,7 +684,6 @@ namespace ModularWeapons2 {
                     }
                     abilityDirty = false;
                 }
-                //Log.Message("[MW2]ability: " + this.ability?.def.defName);
                 return this.ability;
             }
         }
@@ -818,6 +825,7 @@ namespace ModularWeapons2 {
                 return tacDevice;
             }
         }
+
         public void DrawTacDevice() {
             if (TacDevice == null) return;
             var holder = GetHolder();
@@ -841,5 +849,43 @@ namespace ModularWeapons2 {
         //------------------------------------//
         //   フラッシュライト関連 ここまで    //
         //------------------------------------//
+
+        //IRenamable関連
+        /*
+        public string RenamableLabel { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public string BaseLabel => throw new NotImplementedException();
+
+        public string InspectLabel => throw new NotImplementedException();
+        //武器の名前
+        protected string weaponOverrideLabel = "";
+        public string WeaponOverrideLabel => weaponOverrideLabel;
+        public override string TransformLabel(string label) {
+            if (string.IsNullOrEmpty(weaponOverrideLabel)) {
+                return base.TransformLabel(label);
+            }
+            return weaponOverrideLabel;
+        }
+        */
+
+        public string RenamableLabel {
+            get {
+                if (weaponOverrideLabel.NullOrEmpty()) {
+                    return null;
+                }
+                return weaponOverrideLabel;
+            }
+            set {
+                weaponOverrideLabel = value;
+            }
+        }
+        public string weaponOverrideLabel = null;
+        public string BaseLabel => this.parent.def.label.CapitalizeFirst();
+        public string InspectLabel => RenamableLabel;
+
+        public override string TransformLabel(string label) {
+            return RenamableLabel ?? base.TransformLabel(label);
+        }
+
     }
 }

@@ -1,9 +1,24 @@
 ﻿using LudeonTK;
+using System.Diagnostics;
+using System;
 using UnityEngine;
 using Verse;
 
 namespace ModularWeapons2 {
-    public static class MWDebugActions {
+    public static class MWDebug {
+        [Conditional("DEBUG")]
+        public static void LogMessage(object obj) {
+            Log.Message(obj);
+        }
+        [Conditional("DEBUG")]
+        public static void LogWarning(object obj) {
+            Log.Warning(obj.ToString());
+        }
+        [Conditional("DEBUG")]
+        public static void LogError(object obj) {
+            Log.Error(obj.ToString());
+        }
+
         [DebugAction("ModularWeapons2", actionType = DebugActionType.ToolMap, allowedGameStates = AllowedGameStates.PlayingOnMap)]
         public static void GunsmithWeapon() {
             foreach (Thing i in Find.CurrentMap.thingGrid.ThingsAt(UI.MouseCell())) {
