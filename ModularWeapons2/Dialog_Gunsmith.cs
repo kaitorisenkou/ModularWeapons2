@@ -299,6 +299,7 @@ namespace ModularWeapons2 {
 
                 //    ----    パーツ交換    ----    //
                 if (partsTab.Selected) {
+                    ModularPartsDef mouseOverPartDef = null;
                     //下部のパーツ選択ボタン
                     Text.Anchor = TextAnchor.LowerLeft;
                     Text.Font = GameFont.Tiny;
@@ -332,17 +333,23 @@ namespace ModularWeapons2 {
                                 }
                             }
                         } else {//パーツ装着ボタン
-                            var texture = part.graphicData.Graphic.MatSingle.mainTexture;
-                            //Rect textureRect = new Rect(0, 0, texture.width, texture.height) { center = partButtonRect.center };
-                            Widgets.DrawTextureFitted(partButtonRect, texture, part.GUIScale);
-                            Widgets.Label(partButtonRect, part.labelShort.CapitalizeFirst());
+                            bool isResearchFinished = part.IsResearchFinished(out _);
+                            if (isResearchFinished) {
+                                var texture = part.graphicData.Graphic.MatSingle.mainTexture;
+                                //Rect textureRect = new Rect(0, 0, texture.width, texture.height) { center = partButtonRect.center };
+                                Widgets.DrawTextureFitted(partButtonRect, texture, part.GUIScale);
+                                Widgets.Label(partButtonRect, part.labelShort.CapitalizeFirst());
+                            } else {
+                                Widgets.Label(partButtonRect, "???");
+                            }
                             if (attachedParts[selectedPartsIndex] == part) {
                                 Widgets.DrawHighlightSelected(boxRect);
                             } else {
                                 if (Mouse.IsOver(boxRect)) {
                                     Widgets.DrawHighlight(boxRect);
+                                    mouseOverPartDef = part;
                                 }
-                                if (Widgets.ButtonInvisible(boxRect, true)) {
+                                if (isResearchFinished && Widgets.ButtonInvisible(boxRect, true)) {
                                     SoundDefOf.Click.PlayOneShotOnCamera();
                                     //weaponComp.SetPart(selectedPartsIndex, part);
                                     weaponComp.SetPart(adapters[selectedPartsIndex].GenerateHelper(part));
@@ -365,7 +372,9 @@ namespace ModularWeapons2 {
                         height = inRect.height - Text.LineHeightOf(GameFont.Medium) - 80
                     };
                     Widgets.DrawWindowBackground(descRect, colorFactor);
-                    if (attachedParts[selectedPartsIndex] != null) {
+                    if (mouseOverPartDef != null) {
+                        mouseOverPartDef.DrawDescription(descRect, weaponComp);
+                    } else if (attachedParts[selectedPartsIndex] != null) {
                         //Widgets.DrawWindowBackground(descRect);
                         attachedParts[selectedPartsIndex].DrawDescription(descRect, weaponComp);
                     } else {

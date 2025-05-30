@@ -1,6 +1,8 @@
 ﻿using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using Verse;
 using Verse.Noise;
@@ -13,6 +15,8 @@ namespace ModularWeapons2 {
         public ModularPartsMountDef attachedTo;
         public GraphicData graphicData;
         public float GUIScale = 2f;
+
+        List<ResearchProjectDef> researchPrerequisites;
 
 
         public List<ThingDefCountClass> costList = new List<ThingDefCountClass>();
@@ -64,6 +68,10 @@ namespace ModularWeapons2 {
 
         protected readonly Color colorFactor = new Color(1f, 1f, 1f, 0.5f);
         public virtual void DrawDescription(Rect rect, CompModularWeapon weapon = null) {
+            if(!IsResearchFinished(out IEnumerable<string> unfinishedLabels)) {
+                Widgets.Label(rect.ContractedBy(4f), "MW2_researchPrerequisites" + string.Join(", ", unfinishedLabels));
+                return;
+            }
             var rectLeft = rect.LeftPart(0.333f);
             var rectCenter = new Rect(rectLeft) { x = rectLeft.xMax };
             var rectRight = new Rect(rectCenter) { x = rectCenter.xMax };
@@ -123,6 +131,14 @@ namespace ModularWeapons2 {
             GUI.color = tmpColor;
         }
 
-        
+
+        public bool IsResearchFinished(out IEnumerable<string> unfinishedLabels) {
+            if (researchPrerequisites.NullOrEmpty()) {
+                unfinishedLabels = Array.Empty<string>();
+                return true;
+            }
+            unfinishedLabels = researchPrerequisites.Where(t => t.IsFinished).Select(t => t.label);
+            return !unfinishedLabels.Any();
+        }
     }
 }
