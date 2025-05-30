@@ -69,7 +69,7 @@ namespace ModularWeapons2 {
         protected readonly Color colorFactor = new Color(1f, 1f, 1f, 0.5f);
         public virtual void DrawDescription(Rect rect, CompModularWeapon weapon = null) {
             if(!IsResearchFinished(out IEnumerable<string> unfinishedLabels)) {
-                Widgets.Label(rect.ContractedBy(4f), "MW2_researchPrerequisites" + string.Join(", ", unfinishedLabels));
+                Widgets.Label(rect.ContractedBy(4f), "MW2_researchPrerequisites".Translate() + string.Join(", ", unfinishedLabels));
                 return;
             }
             var rectLeft = rect.LeftPart(0.333f);
@@ -137,7 +137,7 @@ namespace ModularWeapons2 {
                 unfinishedLabels = Array.Empty<string>();
                 return true;
             }
-            unfinishedLabels = researchPrerequisites.Where(t => t.IsFinished).Select(t => t.label);
+            unfinishedLabels = researchPrerequisites.Where(t => !t.IsFinished).Select(t => t.label);
             return !unfinishedLabels.Any();
         }
     }
