@@ -70,7 +70,7 @@ namespace ModularWeapons2 {
         IEnumerable<ModularPartsDef> attatchableParts_cache;
         public IEnumerable<ModularPartsDef> GetAttatchableParts() {
             if (attatchableParts_cache == null) {
-                attatchableParts_cache = GetAttatchableParts_Internal(true);
+                attatchableParts_cache = GetAttatchableParts_Internal(true).OrderBy(t => t != null && !t.IsResearchFinished(out _));
             }
             return attatchableParts_cache;
         }
