@@ -22,5 +22,19 @@ namespace ModularWeapons2 {
             }
             return base.MatAt(rot, thing);
         }
+
+        public static bool TryGetAssigned(Graphic graphic, out Graphic_UniqueByComp graphic_UniqueByComp,Thing thing=null) {
+            if (typeof(Graphic_UniqueByComp).IsAssignableFrom(graphic.GetType())) {
+                graphic_UniqueByComp = graphic as Graphic_UniqueByComp;
+                return true;
+            }
+            var inner = GraphicUtility.ExtractInnerGraphicFor(graphic, thing);
+            if (typeof(Graphic_UniqueByComp).IsAssignableFrom(inner.GetType())) {
+                graphic_UniqueByComp = inner as Graphic_UniqueByComp;
+                return true;
+            }
+            graphic_UniqueByComp = null;
+            return false;
+        }
     }
 }

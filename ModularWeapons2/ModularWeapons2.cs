@@ -132,6 +132,13 @@ namespace ModularWeapons2 {
                 AccessTools.Method(typeof(StatDef), "PopulateMutableStats"),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_PopulateMutableStats), null));
 
+            if (MW2Mod.IsWeaponRacksEnable) {
+                Log.Message("[MW2] WeaponRacks detected");
+                harmony.Patch(
+                    AccessTools.PropertyGetter(AccessTools.TypeByName("WeaponRacks.CachedDisplayItem"), "Material"),
+                    prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_WeaponRackMaterial), null));
+            }
+
             Log.Message("[MW2] Harmony patch complete!");
 
             StatDef.SetImmutability();
@@ -543,6 +550,21 @@ namespace ModularWeapons2 {
                         ___mutableStats.Add(j.stat);
                     }
             }
+        }
+
+
+        static bool Prefix_WeaponRackMaterial(Thing ___thing, ref Material __result) {
+            MWDebug.LogMessage("[MW2] Prefix_WeaponRackMaterial working for " + ___thing.GetUniqueLoadID());
+            if (___thing == null) {
+                return true;
+            }
+            MWDebug.LogMessage("[MW2] type: " + ___thing.Graphic.GetType());
+            if (Graphic_UniqueByComp.TryGetAssigned(___thing.Graphic,out Graphic_UniqueByComp gUBC, ___thing)) {
+                __result = gUBC.MatSingleFor(___thing);
+                MWDebug.LogMessage("[MW2] __result assigned");
+                return false;
+            }
+            return true;
         }
     }
 }
