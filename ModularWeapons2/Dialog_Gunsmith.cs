@@ -39,6 +39,7 @@ namespace ModularWeapons2 {
         protected IReadOnlyList<ModularPartsDef> attachedParts;
         public Thing gunsmithStation;
         public Pawn worker;
+        public Map map;
         public Dialog_Gunsmith(CompModularWeapon weapon, Thing gunsmithStation = null, Pawn worker = null) {
             this.weaponComp = weapon;
             this.weaponThing = weapon.parent;
@@ -49,6 +50,7 @@ namespace ModularWeapons2 {
             adapters = weaponComp.MountAdapters;
             attachedParts = weaponComp.AttachedParts;
             this.worker = worker;
+            this.map = weaponThing?.Map ?? gunsmithStation?.Map ?? worker?.Map;
         }
         public override void PostOpen() {
             base.PostOpen();
@@ -415,6 +417,7 @@ namespace ModularWeapons2 {
         //--------------------------------------------------------//
         //        最下段パネル: 合計コスト表示, 終了ボタン        //    
         //--------------------------------------------------------//
+        bool lackResource = false;
         protected virtual void DoLowerContents(Rect inRect) {
             Widgets.DrawBox(inRect);
             var cancelButtonRect = inRect.LeftPart(0.125f).ContractedBy(6f);
@@ -426,9 +429,15 @@ namespace ModularWeapons2 {
             Text.Anchor = TextAnchor.MiddleLeft;
             var ingredientsRect = inRect.RightPart(0.875f);
             ingredientsRect.x += 12f;
+            lackResource = false;
             foreach (var i in weaponComp.GetRequiredIngredients()) {
                 int ingredientCount = Mathf.Max(0, i.Item2 * -1);
                 if (ingredientCount < 1) continue;
+                Color tmp = GUI.color;//色
+                if (ingredientCount > map.resourceCounter.GetCount(i.Item1)) {
+                    GUI.color = Color.red;
+                    lackResource = true;
+                }
                 ingredientsRect.width = 32;
                 Widgets.DrawTextureFitted(ingredientsRect, i.Item1.graphic.MatSingle.mainTexture, 1);
                 ingredientsRect.x += ingredientsRect.width;
@@ -436,10 +445,16 @@ namespace ModularWeapons2 {
                 ingredientsRect.width = Text.CalcSize(text).x;
                 Widgets.Label(ingredientsRect, text);
                 ingredientsRect.x += ingredientsRect.width;
+                GUI.color = tmp;//色もどし
             }
             Text.Anchor = fontAnchor;
             var acceptButtonRect = inRect.RightPart(0.125f).ContractedBy(6f);
-            if (Widgets.ButtonText(acceptButtonRect,"Accept".Translate(),true, true, true, null)) {
+            if (lackResource) {
+                Widgets.DrawHighlight(acceptButtonRect);
+                Text.Anchor = TextAnchor.MiddleCenter;
+                Widgets.Label(acceptButtonRect, "MW2_lackResource".Translate());
+                Text.Anchor = fontAnchor;
+            } else if (Widgets.ButtonText(acceptButtonRect, "Accept".Translate(), true, true, true, null)) {
                 canceled = false;
                 this.Close(true);
             }
