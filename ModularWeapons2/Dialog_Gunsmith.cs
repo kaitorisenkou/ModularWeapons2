@@ -28,6 +28,7 @@ namespace ModularWeapons2 {
         public static Lazy<Texture2D> saveTex=new Lazy<Texture2D>(()=> ContentFinder<Texture2D>.Get("UI/Gunsmith/Save", true));
         public static Lazy<Texture2D> loadTex = new Lazy<Texture2D>(() => ContentFinder<Texture2D>.Get("UI/Gunsmith/Load", true));
         public static Lazy<Texture2D> renameTex => new Lazy<Texture2D>(() => TexUI.RenameTex);
+        public static Lazy<Texture2D> backTex = new Lazy<Texture2D>(() => ContentFinder<Texture2D>.Get("UI/Gunsmith/GunsmithBack", true));
 
         public CompModularWeapon weaponComp;
         public Thing weaponThing;
@@ -207,6 +208,7 @@ namespace ModularWeapons2 {
         protected int selectedPartsIndex = -1;
         //protected MountAdapterClass selectedMount = null;
         protected virtual void DoWeaponScreenContents(Rect inRect) {
+            GUI.DrawTexture(inRect, backTex.Value);
             Widgets.DrawBox(inRect);
             Rect weaponRect = new Rect(inRect) {
                 size = Vector2.one * Mathf.Min(inRect.width, inRect.height) * weaponGraphic.drawSize,
