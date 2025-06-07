@@ -191,8 +191,17 @@ namespace ModularWeapons2 {
                 tools = null;
                 verbPropertiesCached = null;
                 abilityDirty = true;
-                parent.TryGetComp<CompEquippable>()?.verbTracker?.InitVerbsFromZero();
+                var compEq = parent.TryGetComp<CompEquippable>();
+                if (compEq != null) {
+                    compEq?.verbTracker?.InitVerbsFromZero();
+                    foreach (Verb verb in compEq.AllVerbs) {
+                        verb.caster = GetHolder();
+                    }
+                }
                 verbTracker.InitVerbsFromZero();
+                foreach (Verb verb in verbTracker.AllVerbs) {
+                    verb.caster = GetHolder();
+                }
                 Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             }
             SetGraphicDirty();
