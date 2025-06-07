@@ -49,7 +49,7 @@ namespace ModularWeapons2 {
             }
             if (Scribe.mode == LoadSaveMode.PostLoadInit) {
                 var holder = GetHolder();
-                if (holder != null) {
+                if (holder != null && this.AbilityForReading!=null) {
                     this.AbilityForReading.pawn = holder;
                     this.AbilityForReading.verb.caster = holder;
                 }
