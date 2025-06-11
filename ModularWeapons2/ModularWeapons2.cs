@@ -116,30 +116,51 @@ namespace ModularWeapons2 {
             harmony.Patch(
                 AccessTools.Method(typeof(PawnRenderUtility), nameof(PawnRenderUtility.DrawEquipmentAiming)),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_DrawEquipmentAiming), null));
+            MWDebug.LogMessage("[MW2]Postfix_DrawEquipmentAiming done");
             harmony.Patch(
                 AccessTools.Constructor(typeof(Stance_Busy), new Type[] { typeof(int), typeof(LocalTargetInfo), typeof(Verb) }),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_ConstructerStanceBusy), null));
+            MWDebug.LogMessage("[MW2]Postfix_ConstructerStanceBusy done");
 
             harmony.Patch(
                 AccessTools.Method(typeof(VerbTracker), nameof(VerbTracker.ExposeData)),
                 prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_VerbTrackerExpose), null));
+            MWDebug.LogMessage("[MW2]Prefix_VerbTrackerExpose done");
 
             harmony.Patch(
                 AccessTools.Method(typeof(StatDef), nameof(StatDef.IsImmutable)),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_IsImmutable), null));
+            MWDebug.LogMessage("[MW2]Postfix_IsImmutable done");
 
             harmony.Patch(
                 AccessTools.Method(typeof(StatDef), "PopulateMutableStats"),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_PopulateMutableStats), null));
+            MWDebug.LogMessage("[MW2]Postfix_PopulateMutableStats done");
+
+#if v15
+            harmony.Patch(
+                AccessTools.Method(typeof(Widgets), nameof(Widgets.ThingIcon), parameters: new Type[] { typeof(Rect), typeof(ThingDef), typeof(ThingDef), typeof(ThingStyleDef), typeof(float), typeof(Color?), typeof(int?) }),
+                    prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_ThingDefIcon), null)
+                );
+#else
+            harmony.Patch(
+                AccessTools.Method(typeof(Widgets), nameof(Widgets.ThingIcon), parameters: new Type[] { typeof(Rect), typeof(ThingDef), typeof(ThingDef), typeof(ThingStyleDef), typeof(float), typeof(Color?), typeof(int?), typeof(float) }),
+                    prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_ThingDefIcon), null)
+                );
+#endif
+            MWDebug.LogMessage("[MW2]Prefix_ThingDefIcon done");
 
             if (MW2Mod.IsWeaponRacksEnable) {
                 Log.Message("[MW2] WeaponRacks detected");
                 harmony.Patch(
                     AccessTools.PropertyGetter(AccessTools.TypeByName("WeaponRacks.CachedDisplayItem"), "Material"),
                     prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_WeaponRackMaterial), null));
+                MWDebug.LogMessage("[MW2]Prefix_WeaponRackMaterial done");
+            } else {
+                MWDebug.LogMessage("[MW2]Prefix_WeaponRackMaterial skiped");
             }
 
-            Log.Message("[MW2] Harmony patch complete!");
+                Log.Message("[MW2] Harmony patch complete!");
 
             StatDef.SetImmutability();
 
@@ -189,6 +210,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW2]patch failed : Patch_StatOffsetFromGear");
             }
+            MWDebug.LogMessage("[MW2] Patch_StatOffsetFromGear done");
             return instructionList;
         }
         static float GetEquippedOffset(Thing gear, StatDef stat) {
@@ -226,6 +248,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW2]patch failed : Patch_GetIconFor");
             }
+            MWDebug.LogMessage("[MW2] Patch_GetIconFor done");
             return instructionList;
         }
 
@@ -255,6 +278,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW2]patch failed : Patch_TryGetTextureAtlasReplacementInfo");
             }
+            MWDebug.LogMessage("[MW2] Patch_TryGetTextureAtlasReplacementInfo done");
             return instructionList;
         }
         static bool IsTexture2D(Material mat) {
@@ -279,6 +303,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : PlaceHauledThingInCell_Patch");
             }
+            MWDebug.LogMessage("[MW2] Patch_PlaceHauledThingInCell done");
             return instructionList;
         }
 
@@ -309,6 +334,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_MeleeVerbs");
             }
+            MWDebug.LogMessage("[MW2] Patch_MeleeVerbs done");
             return instructionList;
         }
         static List<Verb> GetAllVerbs_IncludeMW(CompEquippable compEq) {
@@ -347,6 +373,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_EqTrExposeData");
             }
+            MWDebug.LogMessage("[MW2] Patch_EqTrExposeData done");
             return instructionList;
         }
 
@@ -369,6 +396,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_Explanation_MeleeDPS");
             }
+            MWDebug.LogMessage("[MW2] Patch_Explanation_MeleeDPS done");
             return instructionList;
         }
         static List<Tool> AddMWTools(StatRequest req, List<Tool> tools) {
@@ -403,6 +431,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_AbilityTracker");
             }
+            MWDebug.LogMessage("[MW2] Patch_AbilityTracker done");
             return instructionList;
         }
         static void AddMWAbility(Pawn_AbilityTracker tracker, List<Ability> abilityList) {
@@ -430,6 +459,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_JobReload");
             }
+            MWDebug.LogMessage("[MW2] Patch_JobReload done");
             return instructionList;
         }
 
@@ -455,6 +485,7 @@ namespace ModularWeapons2 {
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_ReloadableUtil");
             }
+            MWDebug.LogMessage("[MW2] Patch_ReloadableUtil done");
             return instructionList;
         }
 
@@ -492,6 +523,7 @@ namespace ModularWeapons2 {
             if (patchCount < 2) {
                 Log.Error("[MW]patch failed : Patch_ThingDefSDS");
             }
+            MWDebug.LogMessage("[MW2] Patch_ThingDefSDS done");
             return instructionList;
         }
         static List<VerbProperties> GetOverriddenVerbs(List<VerbProperties> original, StatRequest req) {
@@ -539,7 +571,7 @@ namespace ModularWeapons2 {
             */
         }
         static void Postfix_PopulateMutableStats(ref HashSet<StatDef> ___mutableStats) {
-            MWDebug.LogMessage("[MW2] Postfix_PopulateMutableStats done");
+            MWDebug.LogMessage("[MW2] Postfix_PopulateMutableStats worked");
             foreach(var i in DefDatabase<ModularPartsDef>.AllDefsListForReading) {
                 if (i.StatFactors != null)
                     foreach (var j in i.StatFactors) {
@@ -563,6 +595,14 @@ namespace ModularWeapons2 {
                 __result = gUBC.MatSingleFor(___thing);
                 MWDebug.LogMessage("[MW2] __result assigned");
                 return false;
+            }
+            return true;
+        }
+
+        static bool Prefix_ThingDefIcon(ThingDef thingDef,ref float scale) {
+            if (thingDef.comps.Any(t => t is CompProperties_ModularWeapon) && 
+                typeof(Graphic_UniqueByComp).IsAssignableFrom(thingDef.graphicData.graphicClass)) {
+                scale /= 2;
             }
             return true;
         }

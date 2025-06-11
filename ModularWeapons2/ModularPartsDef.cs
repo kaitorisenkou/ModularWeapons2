@@ -16,7 +16,7 @@ namespace ModularWeapons2 {
         public GraphicData graphicData;
         public float GUIScale = 2f;
 
-        List<ResearchProjectDef> researchPrerequisites;
+        public List<ResearchProjectDef> researchPrerequisites;
 
 
         public List<ThingDefCountClass> costList = new List<ThingDefCountClass>();

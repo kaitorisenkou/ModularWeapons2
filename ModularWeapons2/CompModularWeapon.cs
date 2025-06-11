@@ -444,7 +444,11 @@ namespace ModularWeapons2 {
                 if (UnityData.IsInMainThread) {
                     GetTexture();
                 } else {
+#if v15
                     LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, null);
+#else
+                    LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, false, null);
+#endif
                 }
             }
         }
