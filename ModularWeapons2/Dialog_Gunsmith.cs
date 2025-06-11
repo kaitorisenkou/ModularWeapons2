@@ -449,7 +449,7 @@ namespace ModularWeapons2 {
             }
             Text.Anchor = fontAnchor;
             var acceptButtonRect = inRect.RightPart(0.125f).ContractedBy(6f);
-            if (lackResource) {
+            if (lackResource && !DebugSettings.godMode) {
                 Widgets.DrawHighlight(acceptButtonRect);
                 Text.Anchor = TextAnchor.MiddleCenter;
                 Widgets.Label(acceptButtonRect, "MW2_lackResource".Translate());
