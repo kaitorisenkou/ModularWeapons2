@@ -316,7 +316,9 @@ namespace ModularWeapons2 {
             }
             Material mat = ownerThing.Graphic.MatSingleFor(ownerThing);
             __result.icon = mat.mainTexture;
+#if V15
             __result.iconDrawScale = ownerThing.Graphic.drawSize.x;
+#endif
         }
 
 
