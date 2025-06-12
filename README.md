@@ -1,14 +1,6 @@
 # ModularWeapons 2
 A Rimworld mod by kaitorisenkou
 
-**----    ALPHA TEST VERSION     ----**<br>
-**----    アルファテスト版     ----**
-## Please note 利用上の注意
-* Not yet tested it for long-term play. Please do NOT use this mod for important save as bugs may corrupt your save data.
-<br>長時間のプレイは未だテストされていません。セーブデータを破壊するバグが残っている可能性があります。
-* Completely incompatible with MW1. When using this, please create new save.
-<br>前作(ModularWeapons)とは互換性がまったくありません。セーブデータは新規に作成してください。
-
 
 ## Description 概要
 Allows some weapons to be customized at the Gunsmith Workbench. Also some new weapons added. Customizing your weapons will change their appearance and performance.
@@ -32,6 +24,13 @@ Allows some weapons to be customized at the Gunsmith Workbench. Also some new we
 * Pump shotgun  ショットガン
 * Chain shotgun  自動ショットガン
 * Charge rifle  チャージライフル
+
+
+## Please note 利用上の注意
+* Not yet tested it for long-term play. Please do NOT use this mod for important save as bugs may corrupt your save data.
+<br>長時間のプレイは未だテストされていません。セーブデータを破壊するバグが残っている可能性があります。
+* Completely incompatible with MW1. When using this, please create new save.
+<br>前作(ModularWeapons)とは互換性がまったくありません。セーブデータは新規に作成してください。
 
 ## If you have suggestions or found a bug/issue 提案、または報告すべきバグや不具合を見つけたら
 Please report it using one of the following methods: <br>
