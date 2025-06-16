@@ -1,19 +1,20 @@
-﻿using System;
+﻿using HarmonyLib;
+using RimWorld;
+using RimWorld.Utility;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
-using Verse;
-using RimWorld;
-using HarmonyLib;
-using System.Reflection.Emit;
-using System.Reflection;
 using UnityEngine;
-using Verse.Noise;
+using Verse;
 using Verse.AI;
-using RimWorld.Utility;
-using System.Net.NetworkInformation;
+using Verse.Noise;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ModularWeapons2 {
     [StaticConstructorOnStartup]
@@ -137,7 +138,7 @@ namespace ModularWeapons2 {
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_PopulateMutableStats), null));
             MWDebug.LogMessage("[MW2]Postfix_PopulateMutableStats done");
 
-#if v15
+#if V15
             harmony.Patch(
                 AccessTools.Method(typeof(Widgets), nameof(Widgets.ThingIcon), parameters: new Type[] { typeof(Rect), typeof(ThingDef), typeof(ThingDef), typeof(ThingStyleDef), typeof(float), typeof(Color?), typeof(int?) }),
                     prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_ThingDefIcon), null)
@@ -159,8 +160,20 @@ namespace ModularWeapons2 {
             } else {
                 MWDebug.LogMessage("[MW2]Prefix_WeaponRackMaterial skiped");
             }
+            if (MW2Mod.IsLTOGroupsEnable) {
+                Log.Message("[MW2] [LTO] Colony Groups detected");
+                var LTODrawerType = AccessTools.TypeByName("TacticalGroups.TacticalGroups_ColonistBarColonistDrawer");
+                harmony.Patch(
+                    AccessTools.Method(LTODrawerType, "DrawColonistsBarWeaponIcon"),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_TLOGWeaponIcon), null));
+                /*harmony.Patch(
+                    AccessTools.Method(LTODrawerType, "DrawColonistBarWeaponIcon"),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_TLOGWeaponIcon2), null));*/
+            } else {
+                MWDebug.LogMessage("[MW2]Patch_TLOGWeaponIcon skiped");
+            }
 
-                Log.Message("[MW2] Harmony patch complete!");
+            Log.Message("[MW2] Harmony patch complete!");
 
             StatDef.SetImmutability();
 
@@ -607,6 +620,52 @@ namespace ModularWeapons2 {
                 scale /= 2;
             }
             return true;
+        }
+
+        static IEnumerable<CodeInstruction> Patch_TLOGWeaponIcon(IEnumerable<CodeInstruction> instructions) {
+            var instructionList = instructions.ToList();
+            var castIndex = instructionList.FirstIndexOf(t => t.opcode == OpCodes.Castclass && (Type)t.operand == typeof(Texture2D));
+            if (castIndex > 0) {
+                instructionList[castIndex].operand = typeof(Texture);
+            } else {
+                Log.Error("[MW2]patch failed : Patch_TLOGWeaponIcon (castIndex not found)");
+            }
+            var rectIndex = instructionList.FirstIndexOf(t => t.opcode == OpCodes.Ldarg_0);
+            if (rectIndex > 0) {
+                instructionList.InsertRange(rectIndex + 1, new CodeInstruction[] {
+                    new CodeInstruction(OpCodes.Ldarg_1),
+                    new CodeInstruction(OpCodes.Call,AccessTools.Method(typeof(ModularWeapons2),nameof(GetTLOWeaponIconRect)))
+                });
+            } else {
+                Log.Error("[MW2]patch failed : Patch_TLOGWeaponIcon (rectIndex not found)");
+            }
+            MWDebug.LogMessage("[MW2] Patch_TLOGWeaponIcon done");
+            return instructionList;
+        }
+        public static Rect GetTLOWeaponIconRect(Rect original, Thing weapon) {
+            if (Graphic_UniqueByComp.TryGetAssigned(weapon,out _) &&
+                weapon?.TryGetComp<CompModularWeapon>() != null) {
+                var center = original.center;
+                var result = new Rect(original);
+                result.width *= 2;
+                result.height *= 2;
+                result.center = center;
+                return result;
+            }
+            return original;
+        }
+
+        static IEnumerable<CodeInstruction> Patch_TLOGWeaponIcon2(IEnumerable<CodeInstruction> instructions) {
+            var instructionList = instructions.ToList();
+            var drawTextureIndex = instructionList.FirstIndexOf(t => t.opcode == OpCodes.Call && t.operand is MethodInfo && (MethodInfo)t.operand == AccessTools.Method(typeof(GUI),nameof(GUI.DrawTexture), new Type[] { typeof(Rect), typeof(Texture) }));
+            if (drawTextureIndex > 0) {
+                instructionList[drawTextureIndex].operand = AccessTools.Method(typeof(Widgets), nameof(Widgets.DrawTextureFitted), new Type[] { typeof(Rect), typeof(Texture), typeof(float) });
+                instructionList.Insert(drawTextureIndex, new CodeInstruction(OpCodes.Ldc_R4, 1.0f));
+            } else {
+                Log.Error("[MW2]patch failed : Patch_TLOGWeaponIcon2 (drawTextureIndex not found)");
+            }
+            MWDebug.LogMessage("[MW2] Patch_TLOGWeaponIcon done");
+            return instructionList;
         }
     }
 }

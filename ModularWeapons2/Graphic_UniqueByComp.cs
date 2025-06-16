@@ -23,6 +23,9 @@ namespace ModularWeapons2 {
             return base.MatAt(rot, thing);
         }
 
+        public static bool TryGetAssigned(Thing thing, out Graphic_UniqueByComp graphic_UniqueByComp) {
+            return TryGetAssigned(thing?.Graphic, out graphic_UniqueByComp, thing);
+        }
         public static bool TryGetAssigned(Graphic graphic, out Graphic_UniqueByComp graphic_UniqueByComp,Thing thing=null) {
             if (typeof(Graphic_UniqueByComp).IsAssignableFrom(graphic.GetType())) {
                 graphic_UniqueByComp = graphic as Graphic_UniqueByComp;
