@@ -233,23 +233,13 @@ namespace ModularWeapons2 {
         }
 
         public virtual void BufferCurrent(bool overrideBuffer = false) {
-            /*if (overrideBuffer || attachedParts_buffer.NullOrEmpty()) {
-                attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
-                //attachedParts_buffer = attachedParts.ListFullCopy();
-            } else {
-                var tmp = attachedParts_buffer;
-                attachedParts_buffer = new List<ModularPartsDef>(attachedParts);
-                //SetParts(tmp);
-                attachedParts = tmp;
-            }*/
-            if (overrideBuffer || attachHelpers_buffer.NullOrEmpty()) {
-                attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
-                //attachedParts_buffer = attachedParts.ListFullCopy();
-            } else {
-                var tmp = attachHelpers_buffer;
-                attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
-                //SetParts(tmp);
+            var tmp = attachHelpers_buffer;
+            attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
+            if (!overrideBuffer) {
                 attachHelpers = tmp;
+                if (attachHelpers.NullOrEmpty()) {
+                    attachHelpers = new List<PartsAttachHelper>();
+                }
             }
             RefleshParts();
         }
@@ -260,7 +250,9 @@ namespace ModularWeapons2 {
             }
             attachedParts = new List<ModularPartsDef>(attachedParts_buffer);*/
             if (attachHelpers_buffer.NullOrEmpty()) {
-                Log.Warning("[MW2] RevertToBuffer() called, but buffer is null!");
+                MWDebug.LogWarning("[MW2] RevertToBuffer() called, but buffer is null!");
+                attachHelpers = new List<PartsAttachHelper>();
+                RefleshParts();
                 return;
             }
             attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
