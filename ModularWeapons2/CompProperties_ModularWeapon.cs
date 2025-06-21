@@ -9,6 +9,8 @@ namespace ModularWeapons2 {
 
         public GraphicData baseGraphicData;
 
+        public bool autoStyledGraphic = true;
+
         public List<MountAdapterClass> partsMounts;
         public List<PartsAttachHelperClass> defaultParts;
     }

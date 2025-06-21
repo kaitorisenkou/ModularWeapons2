@@ -20,6 +20,19 @@ namespace ModularWeapons2 {
         public ModularPartsDef defaultPart = null;
         */
 
+        public MountAdapterClass() {
+
+        }
+        public MountAdapterClass(MountAdapterClass original) {
+            this.mountDef = original.mountDef;
+            this.offset = original.offset;
+            this.scale = original.scale;
+            this.layerOrder = original.layerOrder;
+            this.adapterGraphic = original.adapterGraphic;
+            this.allowMoreAdapter = original.allowMoreAdapter;
+            this.effectsWhenEmpty = original.effectsWhenEmpty;
+        }
+
         Vector2? normalizedOffset_cache;
         public Vector2 NormalizedOffsetForUI {
             get {

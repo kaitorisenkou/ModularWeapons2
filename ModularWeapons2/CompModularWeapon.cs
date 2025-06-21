@@ -15,18 +15,13 @@ using static UnityEngine.Random;
 
 namespace ModularWeapons2 {
     public class CompModularWeapon : ThingComp, ICompUniqueGraphic, IVerbOwner, IReloadableComp, ICompWithCharges, IRenameable {
-        public CompProperties_ModularWeapon Props {
-            get {
-                return (CompProperties_ModularWeapon)this.props;
-            }
-        }
         //初期化
         public override void Initialize(CompProperties props) {
             base.Initialize(props);
             //attachedParts = Props.partsMounts.Select(t => t.defaultPart).ToList();
             if (verbTracker == null)
                 verbTracker = new VerbTracker(this);
-            SetParts(Props.defaultParts);
+            SetParts(DefaultParts);
             RefleshParts();
         }
         //セーブ
@@ -45,11 +40,16 @@ namespace ModularWeapons2 {
             base.PostExposeData();
             ScribeInt();
             if (Scribe.mode != LoadSaveMode.Saving) {
-                RefleshParts(true);
+#if V15
+                LongEventHandler.QueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts", false, null, true, null);
+#else
+                LongEventHandler.QueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts", false, null, true,false, null);
+#endif
+                //RefleshParts(true);
             }
             if (Scribe.mode == LoadSaveMode.PostLoadInit) {
                 var holder = GetHolder();
-                if (holder != null && this.AbilityForReading!=null) {
+                if (holder != null && this.AbilityForReading != null) {
                     this.AbilityForReading.pawn = holder;
                     this.AbilityForReading.verb.caster = holder;
                 }
@@ -112,7 +112,7 @@ namespace ModularWeapons2 {
         public IReadOnlyList<MountAdapterClass> MountAdapters {
             get {
                 if (mountAdapters.NullOrEmpty()) {
-                    mountAdapters = Props.partsMounts.Select(t => (MountAdapterClass)t).ToList();
+                    mountAdapters = PartsMounts.Select(t => (MountAdapterClass)t).ToList();
                     //MountAdapterClass.SetDistancedForUI(mountAdapters.ToArray());
                 }
                 return mountAdapters;
@@ -208,8 +208,8 @@ namespace ModularWeapons2 {
             tacDeviceDirty = true;
         }
         protected List<ModularPartsDef> SolveAttachHelpers(List<PartsAttachHelper> attachHelpers) {
-            mountAdapters = new List<MountAdapterClass>(Props.partsMounts);
-            MountAdapterClass.ResetAdaptersParent(Props.partsMounts);
+            mountAdapters = new List<MountAdapterClass>(PartsMounts);
+            MountAdapterClass.ResetAdaptersParent(PartsMounts);
             int count = mountAdapters.Count;
             adapterTextureOffset = Enumerable.Repeat(Vector2.zero, count).ToList();
             List<ModularPartsDef> targetList = new ModularPartsDef[count].ToList();
@@ -354,7 +354,7 @@ namespace ModularWeapons2 {
         bool textureDirty;
         public virtual Texture GetTexture() {
             if (renderTextureInt == null) {
-                var texture = Props.baseGraphicData.Graphic.MatSingle?.mainTexture;
+                var texture = BaseGraphic.MatSingle?.mainTexture;
                 renderTextureInt = new RenderTexture(texture.width * 2, texture.height * 2, 32, RenderTextureFormat.ARGB32);
                 textureDirty = true;
             }
@@ -381,7 +381,11 @@ namespace ModularWeapons2 {
             return materialInt;
         }
         public virtual IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
-            var baseMat = Props.baseGraphicData.Graphic.MatSingle;
+            var baseMat =
+                /*MW2Mod.settings.useStyledTexture && Props.autoStyledGraphic && parent.StyleDef != null ?
+                parent.StyleDef.Graphic.MatSingle :
+                Props.baseGraphicData.Graphic.MatSingle;*/
+                BaseGraphic.MatSingle;
             yield return new MWCameraRenderer.MWCameraRequest(baseMat, Vector2.zero, 0);
             var baseDecal = decalHelpers.FirstOrFallback(t => t.attachMountDef == null);
             if (baseDecal?.decalDef != null) {
@@ -403,9 +407,9 @@ namespace ModularWeapons2 {
                         scale
                         );
                 }*/
-                var adapterCRs = 
+                var adapterCRs =
                     MountAdapters[i].GetAdapterCRFor(attachedParts[i], adapterTextureOffset[i], MountAdapters[i].layerOrder);
-                foreach(var cr in adapterCRs) {
+                foreach (var cr in adapterCRs) {
                     yield return cr;
                 }
                 if (attachedParts[i].graphicData != null) {
@@ -481,6 +485,9 @@ namespace ModularWeapons2 {
         //------------------------------------//
 
         protected ModularPartEffects GetPartEffectsAt(int index) {
+            if (index < 0 || index >= (attachedParts?.Count??0)) {
+                return new ModularPartEffects();
+            }
             if (attachedParts[index] == null) {
                 return mountAdapters[index].effectsWhenEmpty;
             }
@@ -516,7 +523,7 @@ namespace ModularWeapons2 {
                 if (attachedParts.Count(t => t != null) < 1) {
                     sb.AppendLine("MW2_SpecialStatEmpty".Translate());
                 }
-                foreach(var i in attachedParts) {
+                foreach (var i in attachedParts) {
                     if (i == null) continue;
                     sb.AppendLine(i.label.CapitalizeFirst().Indented());
                 }
@@ -585,7 +592,7 @@ namespace ModularWeapons2 {
                 }
                 */
                 var offsets = mountAdapters.Select((_, i) => GetPartEffectsAt(i).verbPropsOffset).Where(t => t != null).OrderBy(t => t.priority);
-                foreach(var i in offsets) {
+                foreach (var i in offsets) {
                     i.AffectVerbProps(clone);
                 }
                 yield return clone;
@@ -671,7 +678,7 @@ namespace ModularWeapons2 {
         public MWAbilityProperties AbilityProperties {
             get {
                 if (abilityDirty)
-                    abilityProperties = attachedParts.Select(t => t?.Ability).FirstOrFallback(t => t != null);
+                    abilityProperties = attachedParts?.Select(t => t?.Ability).FirstOrFallback(t => t != null);
                 return abilityProperties;
             }
         }
@@ -824,7 +831,7 @@ namespace ModularWeapons2 {
         public MWTacDevice TacDevice {
             get {
                 if (tacDeviceDirty) {
-                    tacDevice = attachedParts.Select(t => t?.effects.tacDevice).FirstOrFallback(t => t != null);
+                    tacDevice = attachedParts?.Select(t => t?.effects.tacDevice).FirstOrFallback(t => t != null);
                     tacDeviceDirty = false;
                 }
                 return tacDevice;
@@ -856,23 +863,6 @@ namespace ModularWeapons2 {
         //------------------------------------//
 
         //IRenamable関連
-        /*
-        public string RenamableLabel { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        public string BaseLabel => throw new NotImplementedException();
-
-        public string InspectLabel => throw new NotImplementedException();
-        //武器の名前
-        protected string weaponOverrideLabel = "";
-        public string WeaponOverrideLabel => weaponOverrideLabel;
-        public override string TransformLabel(string label) {
-            if (string.IsNullOrEmpty(weaponOverrideLabel)) {
-                return base.TransformLabel(label);
-            }
-            return weaponOverrideLabel;
-        }
-        */
-
         public string RenamableLabel {
             get {
                 if (weaponOverrideLabel.NullOrEmpty()) {
@@ -892,5 +882,47 @@ namespace ModularWeapons2 {
             return RenamableLabel ?? base.TransformLabel(label);
         }
 
+        //------------------------------------//
+        //            プロパティ              //
+        //------------------------------------//
+        bool IsCreated_StyleExtension = false;
+        ModExtension_ModularStyledWeapon StyleExtension = null;
+        public CompProperties_ModularWeapon Props {
+            get {
+                return (CompProperties_ModularWeapon)this.props;
+            }
+        }
+        public CompProperties_ModularWeapon StyledProps {
+            get {
+                if (!MW2Mod.settings.useStyledTexture) {
+                    return Props;
+                }
+                if (!IsCreated_StyleExtension) {
+                    StyleExtension = parent.StyleDef?.GetModExtension<ModExtension_ModularStyledWeapon>();
+                }
+                return StyleExtension?.properties;
+            }
+        }
+        public virtual List<MountAdapterClass> PartsMounts {
+            get {
+                return StyledProps?.partsMounts ?? Props.partsMounts;
+            }
+        }
+        public virtual List<PartsAttachHelperClass> DefaultParts {
+            get {
+                return StyledProps?.defaultParts ?? Props.defaultParts;
+            }
+        }
+        public virtual Graphic BaseGraphic {
+            get {
+                if (MW2Mod.settings.useStyledTexture && Props.autoStyledGraphic) {
+                    return 
+                        StyledProps?.baseGraphicData?.Graphic ?? 
+                        parent.StyleDef?.Graphic ?? 
+                        Props.baseGraphicData.Graphic;
+                }
+                return Props.baseGraphicData.Graphic;
+            }
+        }
     }
 }

@@ -151,6 +151,11 @@ namespace ModularWeapons2 {
 #endif
             MWDebug.LogMessage("[MW2]Prefix_ThingDefIcon done");
 
+            harmony.Patch(
+                AccessTools.Method(typeof(ThingStyleHelper), nameof(ThingStyleHelper.SetStyleDef)),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_SetStyleDef), null));
+            MWDebug.LogMessage("[MW2]Postfix_SetStyleDef done");
+
             if (MW2Mod.IsWeaponRacksEnable) {
                 Log.Message("[MW2] WeaponRacks detected");
                 harmony.Patch(
@@ -198,6 +203,9 @@ namespace ModularWeapons2 {
             MW2Mod.statDefsForceNonImmutable.AddRange(new StatDef[]{
                 StatDefOf.RangedWeapon_Cooldown
             });
+
+            MW2Mod.InjectStyleDefs();
+
             Log.Message("[MW2] Misc initializations complete!");
         }
 
@@ -512,7 +520,7 @@ namespace ModularWeapons2 {
 
 
         static void Postfix_CompEqVerbProperties(ref List<VerbProperties> __result, CompEquippable __instance) {
-            var compMW = __instance.parent.TryGetComp<CompModularWeapon>();
+            var compMW = __instance?.parent?.TryGetComp<CompModularWeapon>();
             if (compMW == null) return;
             __result = compMW.VerbPropertiesForOverride;
         }
@@ -666,6 +674,42 @@ namespace ModularWeapons2 {
             }
             MWDebug.LogMessage("[MW2] Patch_TLOGWeaponIcon done");
             return instructionList;
+        }
+
+        static void Postfix_SetStyleDef(Thing thing) {
+            var compMW = thing.TryGetComp<CompModularWeapon>();
+            if (compMW != null) {
+                compMW.RefleshParts();
+                //compMW.SetGraphicDirty();
+            }
+        }
+
+        static IEnumerable<CodeInstruction> Patch_SMYHHandDrawer(IEnumerable<CodeInstruction> instructions) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            FieldInfo targetInfo = AccessTools.Field(typeof(GraphicData), nameof(GraphicData.drawSize));
+            MethodInfo addMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetDivValueForSMYH));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Ldfld && (FieldInfo)instructionList[i].operand == targetInfo) {
+                    instructionList.InsertRange(i+2, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Call,addMethodInfo),
+                        new CodeInstruction(OpCodes.Div)
+                    });
+                    patchCount++;
+                }
+            }
+            if (patchCount < 2) {
+                Log.Error("[MW]patch failed : Patch_SMYHHandDrawer");
+            }
+            MWDebug.LogMessage("[MW2] Patch_SMYHHandDrawer done");
+            return instructionList;
+        }
+        public static float GetDivValueForSMYH(Thing weapon) {
+            if (weapon.HasComp<CompModularWeapon>() && Graphic_UniqueByComp.TryGetAssigned(weapon, out _)) {
+                return weapon.Graphic.drawSize.x;
+            }
+            return 1;
         }
     }
 }

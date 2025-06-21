@@ -43,8 +43,9 @@
     <Reference Include="0Harmony">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\workshop\content\294100\2009463077\Current\Assemblies\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+    <Reference Include="Assembly-CSharp, Version=1.5.9214.33606, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Documents\RimworldDlls\15\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -85,6 +86,7 @@
     <Compile Include="ICompUniqueGraphic.cs" />
     <Compile Include="JobDriver_ConsumeIngredientsForGunsmith.cs" />
     <Compile Include="JobDriver_UseGunsmithStation.cs" />
+    <Compile Include="ModExtension_ModularStyledWeapon.cs" />
     <Compile Include="ModularPartEffects.cs" />
     <Compile Include="ModularWeapons2.cs" />
     <Compile Include="ModularPartsMountDef.cs" />

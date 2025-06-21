@@ -26,6 +26,14 @@ namespace ModularWeapons2 {
                 if (comp == null)
                     continue;
                 Find.WindowStack.Add(new Dialog_Gunsmith(comp, null, null));
+#if DEBUG
+                Graphic_UniqueByComp.TryGetAssigned(comp.parent, out var gra);
+                if (gra == null) {
+                    LogMessage("[MW2]" + (comp.parent?.GetUniqueLoadID() ?? "(null)") + "'s graphicClass is not UniqueByComp");
+                    LogMessage("[MW2] It's " + comp.parent.Graphic.GetType().ToString());
+                    LogMessage("[MW2] ...and " + comp.parent.Graphic.ExtractInnerGraphicFor(comp.parent).GetType().ToString() + " inside");
+                }
+#endif
                 break;
             }
         }
