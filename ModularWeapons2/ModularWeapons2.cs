@@ -177,6 +177,16 @@ namespace ModularWeapons2 {
             } else {
                 MWDebug.LogMessage("[MW2]Patch_TLOGWeaponIcon skiped");
             }
+            if (MW2Mod.IsShowMeYourHandsEnable) {
+                Log.Message("[MW2] ShowMeYourHands detected");
+                var LTODrawerType = AccessTools.TypeByName("ShowMeYourHands.HandDrawer");
+                harmony.Patch(
+                    AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon",new Type[] { typeof(Thing), typeof(float), typeof(Pawn), typeof(Thing), typeof(bool), typeof(bool)}),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_SMYHHandDrawer), null));
+
+            } else {
+                MWDebug.LogMessage("[MW2]Patch for ShowMeYourHands skiped");
+            }
 
             Log.Message("[MW2] Harmony patch complete!");
 
@@ -690,7 +700,7 @@ namespace ModularWeapons2 {
             FieldInfo targetInfo = AccessTools.Field(typeof(GraphicData), nameof(GraphicData.drawSize));
             MethodInfo addMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetDivValueForSMYH));
             for (int i = 0; i < instructionList.Count; i++) {
-                if (instructionList[i].opcode == OpCodes.Ldfld && (FieldInfo)instructionList[i].operand == targetInfo) {
+                if (instructionList[i].opcode == OpCodes.Ldflda && (FieldInfo)instructionList[i].operand == targetInfo) {
                     instructionList.InsertRange(i+2, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Ldarg_1),
                         new CodeInstruction(OpCodes.Call,addMethodInfo),
@@ -700,14 +710,15 @@ namespace ModularWeapons2 {
                 }
             }
             if (patchCount < 2) {
-                Log.Error("[MW]patch failed : Patch_SMYHHandDrawer");
+                Log.Error("[MW]patch failed : Patch_SMYHHandDrawer (" + patchCount + ")");
             }
             MWDebug.LogMessage("[MW2] Patch_SMYHHandDrawer done");
             return instructionList;
         }
         public static float GetDivValueForSMYH(Thing weapon) {
             if (weapon.HasComp<CompModularWeapon>() && Graphic_UniqueByComp.TryGetAssigned(weapon, out _)) {
-                return weapon.Graphic.drawSize.x;
+                //return weapon.Graphic.drawSize.x;
+                return 2;
             }
             return 1;
         }

@@ -19,7 +19,7 @@ namespace ModularWeapons2 {
         public static bool IsWeaponRacksEnable => isWeaponRacksEnable.Value;
         static Lazy<bool> isLTOGroupsEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("TacticalGroups")));
         public static bool IsLTOGroupsEnable => isLTOGroupsEnable.Value;
-        static Lazy<bool> isSMYHEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("TacticalGroups")));
+        static Lazy<bool> isSMYHEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("ShowMeYourHands")));
         public static bool IsShowMeYourHandsEnable => isSMYHEnable.Value;
         static Lazy<bool> isCEEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("CombatExtended")));
         public static bool IsCombatExtendedEnable => isCEEnable.Value;
