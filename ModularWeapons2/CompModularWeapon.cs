@@ -208,11 +208,9 @@ namespace ModularWeapons2 {
             tacDeviceDirty = true;
         }
         protected List<ModularPartsDef> SolveAttachHelpers(List<PartsAttachHelper> attachHelpers) {
+            if (attachHelpers == null) attachHelpers = new List<PartsAttachHelper>();
             mountAdapters = new List<MountAdapterClass>(PartsMounts);
             MountAdapterClass.ResetAdaptersParent(PartsMounts);
-            if (attachHelpers.NullOrEmpty()) {
-                return new List<ModularPartsDef>();
-            }
             int count = mountAdapters.Count;
             adapterTextureOffset = Enumerable.Repeat(Vector2.zero, count).ToList();
             List<ModularPartsDef> targetList = new ModularPartsDef[count].ToList();
