@@ -210,6 +210,9 @@ namespace ModularWeapons2 {
         protected List<ModularPartsDef> SolveAttachHelpers(List<PartsAttachHelper> attachHelpers) {
             mountAdapters = new List<MountAdapterClass>(PartsMounts);
             MountAdapterClass.ResetAdaptersParent(PartsMounts);
+            if (attachHelpers.NullOrEmpty()) {
+                return new List<ModularPartsDef>();
+            }
             int count = mountAdapters.Count;
             adapterTextureOffset = Enumerable.Repeat(Vector2.zero, count).ToList();
             List<ModularPartsDef> targetList = new ModularPartsDef[count].ToList();
@@ -678,7 +681,7 @@ namespace ModularWeapons2 {
         public MWAbilityProperties AbilityProperties {
             get {
                 if (abilityDirty)
-                    abilityProperties = attachedParts?.Select(t => t?.Ability).FirstOrFallback(t => t != null);
+                    abilityProperties = attachedParts?.Select(t => t?.Ability)?.FirstOrFallback(t => t != null);
                 return abilityProperties;
             }
         }
