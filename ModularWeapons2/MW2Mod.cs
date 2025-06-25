@@ -1,11 +1,11 @@
-﻿using Verse;
+﻿using HarmonyLib;
 using RimWorld;
-using HarmonyLib;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
+using Verse;
 
 namespace ModularWeapons2 {
     public class MW2Mod : Mod {
@@ -15,14 +15,30 @@ namespace ModularWeapons2 {
         public static List<string> lessIsBetter = new List<string>();
         public static List<StatDef> statDefsForceNonImmutable = new List<StatDef>();
 
-        static Lazy<bool> isWeaponRacksEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("WeaponRacks")));
-        public static bool IsWeaponRacksEnable => isWeaponRacksEnable.Value;
-        static Lazy<bool> isLTOGroupsEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("TacticalGroups")));
-        public static bool IsLTOGroupsEnable => isLTOGroupsEnable.Value;
-        static Lazy<bool> isSMYHEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("ShowMeYourHands")));
-        public static bool IsShowMeYourHandsEnable => isSMYHEnable.Value;
-        static Lazy<bool> isCEEnable = new Lazy<bool>(() => AccessTools.AllAssemblies().Any(t => t.FullName.Contains("CombatExtended")));
-        public static bool IsCombatExtendedEnable => isCEEnable.Value;
+        static readonly string[] ExternalAssemblyNames = {
+            "WeaponRacks",
+            "TacticalGroups",
+            "ShowMeYourHands",
+            "MuzzleFlash",
+            "YayoAnimation",
+            "CombatExtended",
+        };
+        static Lazy<List<Assembly>> ExternalModAssemblies = new Lazy<List<Assembly>>(() => {
+            var allAssemblies = AccessTools.AllAssemblies().ToList();
+            return ExternalAssemblyNames.Select(t => allAssemblies.FirstOrFallback(u => u.FullName.Contains(t))).ToList();
+        });
+        public static bool IsWeaponRacksEnable => ExternalModAssemblies.Value[0] != null;
+        public static Assembly Assembly_WeaponRacks => ExternalModAssemblies.Value[0];
+        public static bool IsLTOGroupsEnable => ExternalModAssemblies.Value[1] != null;
+        public static Assembly Assembly_LTOGroups => ExternalModAssemblies.Value[1];
+        public static bool IsShowMeYourHandsEnable => ExternalModAssemblies.Value[2] != null;
+        public static Assembly Assembly_ShowMeYourHands => ExternalModAssemblies.Value[2];
+        public static bool IsMuzzleFlashEnable => ExternalModAssemblies.Value[3] != null;
+        public static Assembly Assembly_MuzzleFlash => ExternalModAssemblies.Value[3];
+        public static bool IsYayoAnimationEnable => ExternalModAssemblies.Value[4] != null;
+        public static Assembly Assembly_YayoAnimation => ExternalModAssemblies.Value[4];
+        public static bool IsCombatExtendedEnable => ExternalModAssemblies.Value[5] != null;
+        public static Assembly Assembly_CE => ExternalModAssemblies.Value[5];
 
         public static MW2Settings settings;
 

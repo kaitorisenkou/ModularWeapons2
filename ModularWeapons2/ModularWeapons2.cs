@@ -158,8 +158,9 @@ namespace ModularWeapons2 {
 
             if (MW2Mod.IsWeaponRacksEnable) {
                 Log.Message("[MW2] WeaponRacks detected");
+                var WeaponRacksType = MW2Mod.Assembly_WeaponRacks.GetType("WeaponRacks.CachedDisplayItem");
                 harmony.Patch(
-                    AccessTools.PropertyGetter(AccessTools.TypeByName("WeaponRacks.CachedDisplayItem"), "Material"),
+                    AccessTools.PropertyGetter(WeaponRacksType, "Material"),
                     prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_WeaponRackMaterial), null));
                 MWDebug.LogMessage("[MW2]Prefix_WeaponRackMaterial done");
             } else {
@@ -167,7 +168,8 @@ namespace ModularWeapons2 {
             }
             if (MW2Mod.IsLTOGroupsEnable) {
                 Log.Message("[MW2] [LTO] Colony Groups detected");
-                var LTODrawerType = AccessTools.TypeByName("TacticalGroups.TacticalGroups_ColonistBarColonistDrawer");
+                //var LTODrawerType = AccessTools.TypeByName("TacticalGroups.TacticalGroups_ColonistBarColonistDrawer");
+                var LTODrawerType = MW2Mod.Assembly_LTOGroups.GetType("TacticalGroups.TacticalGroups_ColonistBarColonistDrawer");
                 harmony.Patch(
                     AccessTools.Method(LTODrawerType, "DrawColonistsBarWeaponIcon"),
                     transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_TLOGWeaponIcon), null));
@@ -179,7 +181,8 @@ namespace ModularWeapons2 {
             }
             if (MW2Mod.IsShowMeYourHandsEnable) {
                 Log.Message("[MW2] ShowMeYourHands detected");
-                var LTODrawerType = AccessTools.TypeByName("ShowMeYourHands.HandDrawer");
+                //var LTODrawerType = AccessTools.TypeByName("ShowMeYourHands.HandDrawer");
+                var LTODrawerType = MW2Mod.Assembly_ShowMeYourHands.GetType("ShowMeYourHands.HandDrawer");
                 harmony.Patch(
                     AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon",new Type[] { typeof(Thing), typeof(float), typeof(Pawn), typeof(Thing), typeof(bool), typeof(bool)}),
                     transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_SMYHHandDrawer), null));
