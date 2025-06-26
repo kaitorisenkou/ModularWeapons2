@@ -9,36 +9,48 @@ using Verse;
 
 namespace ModularWeapons2 {
     public class MW2Mod : Mod {
-        
         public static List<StatDef> statDefsShow = new List<StatDef>();
         public static List<StatCategoryDef> statCategoryShow = new List<StatCategoryDef>();
         public static List<string> lessIsBetter = new List<string>();
         public static List<StatDef> statDefsForceNonImmutable = new List<StatDef>();
+
 
         static readonly string[] ExternalAssemblyNames = {
             "WeaponRacks",
             "TacticalGroups",
             "ShowMeYourHands",
             "MuzzleFlash",
-            "YayoAnimation",
+            "yayoAni",
             "CombatExtended",
         };
         static Lazy<List<Assembly>> ExternalModAssemblies = new Lazy<List<Assembly>>(() => {
             var allAssemblies = AccessTools.AllAssemblies().ToList();
-            return ExternalAssemblyNames.Select(t => allAssemblies.FirstOrFallback(u => u.FullName.Contains(t))).ToList();
+            var result= ExternalAssemblyNames.Select(t => allAssemblies.FirstOrFallback(u => u.GetName().Name.Contains(t))).ToList();
+#if DEBUG
+            MWDebug.LogMessage(
+                "[MW2]ExternalAssemblies: \n  " + 
+                string.Join("\n  ", result.Select((t, i) => "[" + i + "] " + (t == null ? "null" : t.FullName))));
+#endif
+            return result;
         });
         public static bool IsWeaponRacksEnable => ExternalModAssemblies.Value[0] != null;
         public static Assembly Assembly_WeaponRacks => ExternalModAssemblies.Value[0];
+
         public static bool IsLTOGroupsEnable => ExternalModAssemblies.Value[1] != null;
         public static Assembly Assembly_LTOGroups => ExternalModAssemblies.Value[1];
+
         public static bool IsShowMeYourHandsEnable => ExternalModAssemblies.Value[2] != null;
         public static Assembly Assembly_ShowMeYourHands => ExternalModAssemblies.Value[2];
+
         public static bool IsMuzzleFlashEnable => ExternalModAssemblies.Value[3] != null;
         public static Assembly Assembly_MuzzleFlash => ExternalModAssemblies.Value[3];
+
         public static bool IsYayoAnimationEnable => ExternalModAssemblies.Value[4] != null;
         public static Assembly Assembly_YayoAnimation => ExternalModAssemblies.Value[4];
+
         public static bool IsCombatExtendedEnable => ExternalModAssemblies.Value[5] != null;
         public static Assembly Assembly_CE => ExternalModAssemblies.Value[5];
+
 
         public static MW2Settings settings;
 

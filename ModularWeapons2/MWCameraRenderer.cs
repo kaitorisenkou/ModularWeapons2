@@ -9,11 +9,16 @@ using static RimWorld.MechClusterSketch;
 namespace ModularWeapons2 {
     public class MWCameraRenderer : MonoBehaviour {
         public static void Render(RenderTexture renderTexture, CompModularWeapon targetWeapon) {
-            mwCameraRenderer.requests = targetWeapon.GetRequestsForRenderCam().OrderBy(t => t.layerOrder);
+            mwCameraRenderer.requests = targetWeapon.GetRequestsForRenderCam()?.OrderBy(t => t.layerOrder) ?? null;
+            if (mwCameraRenderer.requests == null) {
+                mwCameraRenderer.requests = new MWCameraRequest[] {
+                    new MWCameraRequest(targetWeapon.parent.Graphic.MatSingle,Vector2.zero,0)
+                };
+            }
             RenderInt(renderTexture);
         }
         public static void Render(RenderTexture renderTexture, params MWCameraRequest[] requests) {
-            mwCameraRenderer.requests = requests.OrderBy(t => t.layerOrder);
+            mwCameraRenderer.requests = requests?.OrderBy(t => t.layerOrder) ?? null;
             RenderInt(renderTexture);
         }
         static void RenderInt(RenderTexture renderTexture) {

@@ -839,7 +839,7 @@ namespace ModularWeapons2 {
             }
         }
 
-        public void DrawTacDevice() {
+        public void DrawTacDevice(Vector3 drawLoc) {
             if (TacDevice == null) return;
             var holder = GetHolder();
             Stance_Busy stance;
@@ -849,7 +849,12 @@ namespace ModularWeapons2 {
                  stance.verb is Verb_Shoot
                 ) {
                 //DrawTacDevice(holder.TrueCenter(), stance_Warmup.verb.CurrentTarget.CenterVector3);
-                TacDevice.DrawEffect(holder.TrueCenter(), stance.verb.CurrentTarget.CenterVector3);
+                var posA = holder.TrueCenter();
+                if (MW2Mod.IsYayoAnimationEnable) {
+                    //posA += CalcYayoAnimWiggle(stance);
+                    posA = drawLoc;
+                }
+                TacDevice.DrawEffect(posA, stance.verb.CurrentTarget.CenterVector3);
             }
         }
         public void OnStanceBusy(Verb verb) {
@@ -857,6 +862,22 @@ namespace ModularWeapons2 {
             var pawn = verb.caster as Pawn;
             if (pawn != null)
                 TacDevice.OnStanceBegin(pawn, verb.CurrentTarget);
+        }
+        public Vector3 CalcYayoAnimWiggle(Stance_Busy stance) {
+            var ticksLeft = stance.ticksLeft;
+            if (stance.ticksLeft > 78) {
+                return Vector3.zero;
+            } else if(stance.ticksLeft > 48) {
+                var wiggle = Mathf.Sin(stance.ticksLeft * 0.1f) * 0.05f;
+                return new Vector3(wiggle - 0.2f, 0, wiggle + 0.2f);
+            } else if (stance.ticksLeft > 40) {
+                var wiggle = Mathf.Sin(stance.ticksLeft * 0.1f) * 0.05f;
+                var wiggleFast = Mathf.Sin(stance.ticksLeft) * 0.05f;
+                return new Vector3(wiggleFast + 0.05f, 0, wiggle - 0.05f);
+            } else if (stance.ticksLeft > 1) {
+                return new Vector3(0, 0, Mathf.Sin(stance.ticksLeft * 0.035f) * 0.05f);
+            }
+                return Vector3.zero;
         }
 
         //------------------------------------//

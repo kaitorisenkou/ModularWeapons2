@@ -573,10 +573,10 @@ namespace ModularWeapons2 {
         }
 
 
-        static void Postfix_DrawEquipmentAiming(Thing eq) {
+        static void Postfix_DrawEquipmentAiming(Thing eq, Vector3 drawLoc) {
             var compMW = eq.TryGetComp<CompModularWeapon>();
             if (compMW == null) return;
-            compMW.DrawTacDevice();
+            compMW.DrawTacDevice(drawLoc);
         }
         static void Postfix_ConstructerStanceBusy(Verb ___verb) {
             var compMW = ___verb?.EquipmentSource?.TryGetComp<CompModularWeapon>();

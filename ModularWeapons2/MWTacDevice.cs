@@ -23,7 +23,8 @@ namespace ModularWeapons2 {
         public float lineWidth = 0.1f;
 
         public override void DrawEffect(Vector3 posA, Vector3 posB) {
-            GenDraw.DrawLineBetween(posA + (posB - posA).normalized * 0.6875f, posB, layer, graphicData.Graphic.MatSingle, lineWidth);
+            Vector3 offset = (posB - posA).normalized * /*0.6875f*/0.25f;
+            GenDraw.DrawLineBetween(posA + offset, posB, layer, graphicData.Graphic.MatSingle, lineWidth);
         }
     }
     public class MWTacDevice_Flashlight : MWTacDevice {
