@@ -18,7 +18,7 @@ namespace ModularWeapons2 {
             RenderInt(renderTexture);
         }
         public static void Render(RenderTexture renderTexture, params MWCameraRequest[] requests) {
-            mwCameraRenderer.requests = requests?.OrderBy(t => t.layerOrder) ?? null;
+            mwCameraRenderer.requests = requests?.OrderBy(t => t.layerOrder).ToArray() ?? null;
             RenderInt(renderTexture);
         }
         static void RenderInt(RenderTexture renderTexture) {
@@ -33,7 +33,7 @@ namespace ModularWeapons2 {
         IEnumerable<MWCameraRequest> requests = null;
         public void OnPostRender() {
             if (requests == null) return;
-            foreach (var i in requests) {
+            foreach (var i in requests.ToArray()) {
                 if (i.material == null) continue;
                 var matrix = new Matrix4x4();
                 matrix.SetTRS(i.offset, i.rotation, i.scale);
