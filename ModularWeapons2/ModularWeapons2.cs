@@ -186,7 +186,9 @@ namespace ModularWeapons2 {
                 harmony.Patch(
                     AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon",new Type[] { typeof(Thing), typeof(float), typeof(Pawn), typeof(Thing), typeof(bool), typeof(bool)}),
                     transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_SMYHHandDrawer), null));
-
+                harmony.Patch(
+                    AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon", new Type[] { typeof(Pawn) }),
+                    transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_SMYHHandDrawer2), null));
             } else {
                 MWDebug.LogMessage("[MW2]Patch for ShowMeYourHands skiped");
             }
@@ -712,7 +714,7 @@ namespace ModularWeapons2 {
                     patchCount++;
                 }
             }
-            if (patchCount < 2) {
+            if (patchCount < 4) {
                 Log.Error("[MW]patch failed : Patch_SMYHHandDrawer (" + patchCount + ")");
             }
             MWDebug.LogMessage("[MW2] Patch_SMYHHandDrawer done");
@@ -724,6 +726,51 @@ namespace ModularWeapons2 {
                 return 2;
             }
             return 1;
+        }
+
+        static IEnumerable<CodeInstruction> Patch_SMYHHandDrawer2(IEnumerable<CodeInstruction> instructions) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            var drawerType = MW2Mod.Assembly_ShowMeYourHands.GetType("ShowMeYourHands.HandDrawer");
+            FieldInfo targetInfo1 = AccessTools.Field(drawerType, "MainHand");
+            FieldInfo targetInfo2 = AccessTools.Field(drawerType, "OffHand");
+            MethodInfo addMethodInfo1 = AccessTools.Method(typeof(ModularWeapons2), nameof(GetHandOffsetForSMYH_Main));
+            MethodInfo addMethodInfo2 = AccessTools.Method(typeof(ModularWeapons2), nameof(GetHandOffsetForSMYH_Off));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Stfld && (FieldInfo)instructionList[i].operand == targetInfo1) {
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Call,addMethodInfo1)
+                    });
+                    i += 3;
+                    patchCount++;
+                }
+                if (instructionList[i].opcode == OpCodes.Stfld && (FieldInfo)instructionList[i].operand == targetInfo2) {
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Call,addMethodInfo2)
+                    });
+                    patchCount++;
+                    break;
+                }
+            }
+            if (patchCount < 2) {
+                Log.Error("[MW]patch failed : Patch_SMYHHandDrawer2 (" + patchCount + ")");
+            }
+            MWDebug.LogMessage("[MW2] Patch_SMYHHandDrawer2 done");
+            return instructionList;
+        }
+        public static Vector3 GetHandOffsetForSMYH_Main(Vector3 original,Pawn pawn) {
+            var comp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
+            if (comp == null)
+                return original;
+            return original+comp.GetMainHandOffset();
+        }
+        public static Vector3 GetHandOffsetForSMYH_Off(Vector3 original, Pawn pawn) {
+            var comp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
+            if (comp == null)
+                return original;
+            return original+comp.GetOffHandOffset();
         }
     }
 }

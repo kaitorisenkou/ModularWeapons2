@@ -17,6 +17,10 @@ namespace ModularWeapons2 {
         public MWAbilityProperties ability;
         public MWTacDevice tacDevice;
 
+        //ShowMeYourHands compatiblity
+        public Vector3 mainHandOffset;
+        public Vector3 offHandOffset;
+
         //public IEnumerable<(string, Color)> GetStatChangeTexts(CompModularWeapon weapon = null) {
         public IEnumerable<(TaggedString,int)> GetStatChangeTexts(CompModularWeapon weapon = null) {
             var builder = new StringBuilder();

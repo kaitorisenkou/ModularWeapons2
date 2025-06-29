@@ -883,8 +883,8 @@ namespace ModularWeapons2 {
         //------------------------------------//
         //   フラッシュライト関連 ここまで    //
         //------------------------------------//
-
-        //IRenamable関連
+        //           IRenamable関連           //
+        //------------------------------------//
         public string RenamableLabel {
             get {
                 if (weaponOverrideLabel.NullOrEmpty()) {
@@ -902,6 +902,54 @@ namespace ModularWeapons2 {
 
         public override string TransformLabel(string label) {
             return RenamableLabel ?? base.TransformLabel(label);
+        }
+        //------------------------------------//
+        //        ShowMeYourHands 互換        //
+        //------------------------------------//
+        public virtual Vector3 GetMainHandOffset() {
+            Vector3 result = new Vector3(0, 0, 0);
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                ModularPartEffects effects = GetPartEffectsAt(i);
+                result += effects.mainHandOffset;
+            }
+            return result;
+        }
+        public virtual Vector3 GetOffHandOffset() {
+            Vector3 result = new Vector3(0, 0, 0);
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                ModularPartEffects effects = GetPartEffectsAt(i);
+                result += effects.offHandOffset;
+            }
+            return result;
+        }
+
+        //------------------------------------//
+        //     他MOD互換 (DefModExtension)    //
+        //------------------------------------//
+
+        public IEnumerable<T> GetAllModExtensionsFromParts<T>() where T :DefModExtension{
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                if (attachedParts[i] != null) {
+                    yield return attachedParts[i].GetModExtension<T>();
+                }
+            }
+        }
+        public T GetFirstModExtensionsFromParts<T>() where T : DefModExtension {
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                if (attachedParts[i] != null) {
+                    return attachedParts[i].GetModExtension<T>();
+                }
+            }
+            return null;
+        }
+        public T GetLastModExtensionsFromParts<T>() where T : DefModExtension {
+            T result = null;
+            for (int i = 0; i < mountAdapters.Count; i++) {
+                if (attachedParts[i] != null) {
+                    result = attachedParts[i].GetModExtension<T>();
+                }
+            }
+            return result;
         }
 
         //------------------------------------//
