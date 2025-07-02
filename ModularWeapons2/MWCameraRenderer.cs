@@ -22,6 +22,10 @@ namespace ModularWeapons2 {
             RenderInt(renderTexture);
         }
         static void RenderInt(RenderTexture renderTexture) {
+            if (renderTexture == null) {
+                Log.Warning("[MW2] Argument of RenderInt is null!");
+                return;
+            }
             float orthographicSize = mwCamera.orthographicSize;
             mwCamera.SetTargetBuffers(renderTexture.colorBuffer, renderTexture.depthBuffer);
             mwCamera.Render();
