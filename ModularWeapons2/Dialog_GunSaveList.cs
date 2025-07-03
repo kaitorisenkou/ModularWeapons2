@@ -107,6 +107,7 @@ namespace ModularWeapons2 {
         protected override void DoFileInteraction(string fileName) {
             fileName = GenFile.SanitizedFileName(fileName);
             string absPath = AbsPath(weapon, fileName);
+            //これ安全かな～？
             LongEventHandler.QueueLongEvent(
                 delegate () { SaveGunsmith(weapon.TryGetComp<CompModularWeapon>(), absPath); },
                 "SavingLongEvent", false, null, true);

@@ -14,6 +14,9 @@ namespace ModularWeapons2 {
                 mwCameraRenderer.requests = new MWCameraRequest[] {
                     new MWCameraRequest(targetWeapon.parent.Graphic.MatSingle,Vector2.zero,0)
                 };
+                MWDebug.LogMessage("[MW2] mwCameraRenderer.requests was null!");
+            } else {
+                MWDebug.LogMessage("[MW2] mwCameraRenderer.requests: " + mwCameraRenderer.requests.Count());
             }
             RenderInt(renderTexture);
         }

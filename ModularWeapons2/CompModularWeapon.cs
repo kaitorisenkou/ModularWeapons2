@@ -40,11 +40,7 @@ namespace ModularWeapons2 {
             base.PostExposeData();
             ScribeInt();
             if (Scribe.mode != LoadSaveMode.Saving) {
-#if V15
-                LongEventHandler.QueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts", false, null, true, null);
-#else
-                LongEventHandler.QueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts", false, null, true,false, null);
-#endif
+                MW2Mod.JustQueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts_OnExpose");
                 //RefleshParts(true);
             }
             if (Scribe.mode == LoadSaveMode.PostLoadInit) {
@@ -235,7 +231,8 @@ namespace ModularWeapons2 {
 
         public virtual void BufferCurrent(bool overrideBuffer = false) {
             var tmp = attachHelpers_buffer;
-            attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
+            //attachHelpers_buffer = new List<PartsAttachHelper>(attachHelpers);
+            attachHelpers_buffer = attachHelpers != null ? attachHelpers.ToList() : new List<PartsAttachHelper>();
             if (!overrideBuffer) {
                 attachHelpers = tmp;
                 if (attachHelpers.NullOrEmpty()) {
@@ -378,10 +375,16 @@ namespace ModularWeapons2 {
                     colorTwo = Color.white
                 };
                 materialInt = MaterialPool.MatFrom(req);
+                MWDebug.LogMessage("[MW2]" + parent.GetUniqueLoadID() + "'s texture loaded on " + Scribe.mode);
             }
             return materialInt;
         }
         public virtual IEnumerable<MWCameraRenderer.MWCameraRequest> GetRequestsForRenderCam() {
+            MWDebug.LogMessage("[MW2] MWCamera requested for " + parent.GetUniqueLoadID());
+            if (decalHelpers == null)
+                decalHelpers = new List<DecalPaintHelper>();
+            if (attachedParts == null)
+                attachedParts = new List<ModularPartsDef>();
             var baseMat =
                 /*MW2Mod.settings.useStyledTexture && Props.autoStyledGraphic && parent.StyleDef != null ?
                 parent.StyleDef.Graphic.MatSingle :
@@ -395,7 +398,7 @@ namespace ModularWeapons2 {
                     Vector2.zero, 0);
             }
             for (int i = 0; i < MountAdapters.Count; i++) {
-                if (attachedParts[i] == null) continue;
+                if (attachedParts.Count <= i || attachedParts[i] == null) continue;
                 //var offset = MountAdapters[i].offset + adapterTextureOffset[i];
                 var offset = MountAdapters[i].GetOffsetFor(attachedParts[i]) + adapterTextureOffset[i];
                 var scale = MountAdapters[i].GetScaleFor(attachedParts[i]);
@@ -441,11 +444,7 @@ namespace ModularWeapons2 {
                 if (UnityData.IsInMainThread) {
                     GetTexture();
                 } else {
-#if V15
-                    LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, null);
-#else
-                    LongEventHandler.QueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture", false, null, true, false, null);
-#endif
+                    MW2Mod.JustQueueLongEvent(delegate () { GetTexture(); }, "MW2_GetTexture");
                 }
             }
         }
@@ -457,6 +456,9 @@ namespace ModularWeapons2 {
             return GetPaintHelperOf(null);
         }
         public DecalPaintHelper GetPaintHelperOf(ModularPartsMountDef attachMountDef) {
+            if (decalHelpers.NullOrEmpty()) {
+                decalHelpers = new List<DecalPaintHelper>();
+            }
             var result = decalHelpers.FirstOrFallback(t => t.attachMountDef == attachMountDef);
             if (result == null) {
                 result = SetDecal(new DecalPaintHelper(null, attachMountDef: attachMountDef));

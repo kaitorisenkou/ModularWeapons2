@@ -52,6 +52,15 @@ namespace ModularWeapons2 {
         public static Assembly Assembly_CE => ExternalModAssemblies.Value[5];
 
 
+        public static void JustQueueLongEvent(Action action, string key) {
+#if V15
+            LongEventHandler.QueueLongEvent(action, key, false, null, true, null);
+#else
+            LongEventHandler.QueueLongEvent(action, key, false, null, true, false, null);
+#endif
+        }
+
+
         public static MW2Settings settings;
 
         public MW2Mod(ModContentPack content) : base(content) {
