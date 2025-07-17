@@ -122,12 +122,10 @@ namespace ModularWeapons2 {
                 AccessTools.Constructor(typeof(Stance_Busy), new Type[] { typeof(int), typeof(LocalTargetInfo), typeof(Verb) }),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_ConstructerStanceBusy), null));
             MWDebug.LogMessage("[MW2]Postfix_ConstructerStanceBusy done");
-
             harmony.Patch(
                 AccessTools.Method(typeof(VerbTracker), nameof(VerbTracker.ExposeData)),
                 prefix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Prefix_VerbTrackerExpose), null));
             MWDebug.LogMessage("[MW2]Prefix_VerbTrackerExpose done");
-
             harmony.Patch(
                 AccessTools.Method(typeof(StatDef), nameof(StatDef.IsImmutable)),
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_IsImmutable), null));
@@ -588,8 +586,8 @@ namespace ModularWeapons2 {
 
 
         static bool Prefix_VerbTrackerExpose(VerbTracker __instance) {
-            if (__instance.directOwner is CompModularWeapon ||
-                (__instance.directOwner as CompEquippable)?.parent.TryGetComp<CompModularWeapon>() != null) {
+            if (__instance.directOwner is CompModularWeapon /*||
+                (__instance.directOwner as CompEquippable)?.parent.TryGetComp<CompModularWeapon>() != null*/) {
                 if (Scribe.mode == LoadSaveMode.PostLoadInit) {
                     __instance.InitVerbsFromZero();
                 }
