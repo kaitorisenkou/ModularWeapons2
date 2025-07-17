@@ -34,10 +34,15 @@ namespace ModularWeapons2 {
             Scribe_Deep.Look(ref verbTracker, "verbTracker", new object[] { this });
             Scribe_Deep.Look(ref ability, "ability", Array.Empty<object>());
             Scribe_Values.Look(ref abilityDirty, "abilityDirty", defaultValue: true);
+            Scribe_Values.Look(ref charges_forExposer, "abilityCharges", defaultValue: 0);
+            Scribe_Values.Look(ref replenishInTicks, "replenishInTicks", defaultValue: -1);
             Scribe_Values.Look(ref weaponOverrideLabel, "weaponOverrideLabel", defaultValue: "");
         }
         public override void PostExposeData() {
             base.PostExposeData();
+            if (Scribe.mode == LoadSaveMode.Saving) {
+                charges_forExposer = AbilityForReading?.RemainingCharges ?? 0;
+            }
             ScribeInt();
             if (Scribe.mode != LoadSaveMode.Saving) {
                 MW2Mod.JustQueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts_OnExpose");
@@ -48,6 +53,9 @@ namespace ModularWeapons2 {
                 if (holder != null && this.AbilityForReading != null) {
                     this.AbilityForReading.pawn = holder;
                     this.AbilityForReading.verb.caster = holder;
+                }
+                if (AbilityForReading != null && charges_forExposer != AbilityForReading.RemainingCharges) {
+                    AbilityForReading.RemainingCharges = charges_forExposer;
                 }
             }
         }
@@ -703,9 +711,22 @@ namespace ModularWeapons2 {
             }
         }
         public int RemainingCharges {
-            get { return AbilityForReading?.RemainingCharges ?? 0; }
-            set { if (AbilityForReading != null) AbilityForReading.RemainingCharges = value; }
+            get {
+                var result = AbilityForReading?.RemainingCharges ?? 0;
+                if (AbilityForReading != null && charges_forExposer != result) {
+                    result = charges_forExposer;
+                    AbilityForReading.RemainingCharges = result;
+                }
+                return result; 
+            }
+            set {
+                if (AbilityForReading != null) {
+                    AbilityForReading.RemainingCharges = value;
+                    charges_forExposer = AbilityForReading.RemainingCharges;
+                }
+            }
         }
+        int charges_forExposer = 0;
 
         public Thing ReloadableThing => this.parent;
 
@@ -861,7 +882,7 @@ namespace ModularWeapons2 {
         }
         public void OnStanceBusy(Verb verb) {
             if (TacDevice == null) return;
-            var pawn = verb.caster as Pawn;
+            var pawn = verb?.caster as Pawn;
             if (pawn != null)
                 TacDevice.OnStanceBegin(pawn, verb.CurrentTarget);
         }
