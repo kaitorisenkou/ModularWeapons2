@@ -54,9 +54,11 @@ namespace ModularWeapons2 {
                     this.AbilityForReading.pawn = holder;
                     this.AbilityForReading.verb.caster = holder;
                 }
-                if (AbilityForReading != null && charges_forExposer != AbilityForReading.RemainingCharges) {
-                    AbilityForReading.RemainingCharges = charges_forExposer;
-                }
+                MW2Mod.JustQueueLongEvent(() => {
+                    if (AbilityForReading != null && charges_forExposer != AbilityForReading.RemainingCharges) {
+                        AbilityForReading.RemainingCharges = charges_forExposer;
+                    }
+                }, "MW2ExposeAbilityCharges_" + parent.GetUniqueLoadID());
             }
         }
         public string fileName;
@@ -101,8 +103,8 @@ namespace ModularWeapons2 {
             if (AbilityForReading != null) {
                 AbilityForReading.pawn = owner;
                 AbilityForReading.verb.caster = owner;
-                owner.abilities.Notify_TemporaryAbilitiesChanged();
             }
+            owner.abilities.Notify_TemporaryAbilitiesChanged();
         }
         public override void Notify_Unequipped(Pawn pawn) {
             pawn.abilities.Notify_TemporaryAbilitiesChanged();
@@ -194,7 +196,13 @@ namespace ModularWeapons2 {
             if (!scribe) {
                 tools = null;
                 verbPropertiesCached = null;
-                abilityDirty = true;
+                abilityPropDirty = true;
+                var abilityPropTmp = abilityProperties;
+                if (abilityPropTmp != AbilityProperties) {
+                    abilityDirty = true;
+                    ability = null;
+                    charges_forExposer = 0;
+                }
                 var compEq = parent.TryGetComp<CompEquippable>();
                 if (compEq != null) {
                     compEq?.verbTracker?.InitVerbsFromZero();
@@ -685,16 +693,19 @@ namespace ModularWeapons2 {
         //------------------------------------//
 
         MWAbilityProperties abilityProperties = null;
-        bool abilityDirty = true;
+        bool abilityPropDirty = true;
         public MWAbilityProperties AbilityProperties {
             get {
-                if (abilityDirty)
+                if (abilityPropDirty) {
                     abilityProperties = attachedParts?.Select(t => t?.Ability)?.FirstOrFallback(t => t != null);
+                    abilityPropDirty = false;
+                }
                 return abilityProperties;
             }
         }
 
         Ability ability = null;
+        bool abilityDirty = true;
         public Ability AbilityForReading {
             get {
                 if (abilityDirty) {

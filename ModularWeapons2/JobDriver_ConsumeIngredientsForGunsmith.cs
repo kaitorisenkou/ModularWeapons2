@@ -51,6 +51,11 @@ namespace ModularWeapons2 {
             //武器のカスタマイズを反映
             yield return Toils_General.Do(delegate {
                 comp.SetPartsWithBuffer();
+                pawn.equipment.TryDropEquipment(comp.parent, out var resultingEq, pawn.Position);
+                resultingEq.DeSpawn(DestroyMode.Vanish);
+                pawn.equipment.MakeRoomFor(resultingEq);
+                pawn.equipment.AddEquipment(resultingEq);
+                //comp.parent.Notify_Equipped(pawn);
             });
             yield break;
         }
