@@ -593,6 +593,9 @@ namespace ModularWeapons2 {
                 }
                 return false;
             }
+            if(__instance.directOwner is CompEquippable && __instance.AllVerbs.NullOrEmpty()) {
+                __instance.InitVerbsFromZero();
+            }
             return true;
         }
 
