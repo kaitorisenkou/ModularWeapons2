@@ -22,6 +22,13 @@ namespace ModularWeapons2 {
             if (verbTracker == null)
                 verbTracker = new VerbTracker(this);
             SetParts(DefaultParts);
+            if (parent.def.MadeFromStuff && parent.Stuff != null) {
+                SetDecal(new DecalPaintHelper(
+                    MW2DefOf.MW2Decal_Solid,
+                    parent.Stuff.stuffProps.color * 0.5f,
+                    null
+                    ));
+            }
             RefleshParts();
         }
         //セーブ

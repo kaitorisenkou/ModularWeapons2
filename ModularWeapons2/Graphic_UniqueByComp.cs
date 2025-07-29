@@ -23,6 +23,10 @@ namespace ModularWeapons2 {
             return base.MatAt(rot, thing);
         }
 
+        public override Graphic GetColoredVersion(Shader newShader, Color newColor, Color newColorTwo) {
+            return this;
+        }
+
         public static bool TryGetAssigned(Thing thing, out Graphic_UniqueByComp graphic_UniqueByComp) {
             return TryGetAssigned(thing?.Graphic, out graphic_UniqueByComp, thing);
         }
