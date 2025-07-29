@@ -37,5 +37,13 @@ namespace ModularWeapons2 {
                 break;
             }
         }
+#if DEBUG
+        [DebugAction("ModularWeapons2", actionType = DebugActionType.ToolMap, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void CheckGraphicClass() {
+            foreach (Thing i in Find.CurrentMap.thingGrid.ThingsAt(UI.MouseCell())) {
+                LogMessage("[MW2]"+i.GetUniqueLoadID()+": "+i.Graphic.GetType().ToString());
+            }
+        }
     }
+#endif
 }
