@@ -82,6 +82,14 @@ namespace ModularWeapons2 {
                 transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
 
             harmony.Patch(
+                AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageArmorPenetration.GetExplanationUnfinalized)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageArmorPenetration.GetValueUnfinalized)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+
+            harmony.Patch(
                 AccessTools.PropertyGetter(typeof(Pawn_AbilityTracker), nameof(Pawn_AbilityTracker.AllAbilitiesForReading)),
                 transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_AbilityTracker), null));
 
