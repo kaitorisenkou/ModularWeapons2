@@ -82,12 +82,12 @@ namespace ModularWeapons2 {
                 transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
 
             harmony.Patch(
-                AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageArmorPenetration.GetExplanationUnfinalized)),
-                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+                AccessTools.Method(typeof(StatWorker_MeleeAverageArmorPenetration), nameof(StatWorker_MeleeAverageArmorPenetration.GetExplanationUnfinalized)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeAP), null));
 
             harmony.Patch(
-                AccessTools.Method(typeof(StatWorker_MeleeAverageDPS), nameof(StatWorker_MeleeAverageArmorPenetration.GetValueUnfinalized)),
-                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeDPS), null));
+                AccessTools.Method(typeof(StatWorker_MeleeAverageArmorPenetration), nameof(StatWorker_MeleeAverageArmorPenetration.GetValueUnfinalized)),
+                transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_Explanation_MeleeAP), null));
 
             harmony.Patch(
                 AccessTools.PropertyGetter(typeof(Pawn_AbilityTracker), nameof(Pawn_AbilityTracker.AllAbilitiesForReading)),
@@ -449,6 +449,30 @@ namespace ModularWeapons2 {
                 return tools;
             }
             return tools.Concat(compMW.Tools).ToList();
+        }
+
+        static IEnumerable<CodeInstruction> Patch_Explanation_MeleeAP(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
+            int patchCount = 0;
+            var instructionList = instructions.ToList();
+            FieldInfo targetInfo = AccessTools.Field(typeof(ThingDef), nameof(ThingDef.tools));
+            MethodInfo addMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(AddMWTools_AP));
+            for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Ldfld && instructionList[i].operand is FieldInfo && (FieldInfo)instructionList[i].operand == targetInfo) {
+                    instructionList.InsertRange(i + 1, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Call,addMethodInfo),
+                    });
+                    patchCount++;
+                }
+            }
+            if (patchCount < 1) {
+                Log.Error("[MW]patch failed : Patch_Explanation_MeleeDPS");
+            }
+            MWDebug.LogMessage("[MW2] Patch_Explanation_MeleeDPS done");
+            return instructionList;
+        }
+        static List<Tool> AddMWTools_AP(List<Tool> tools, StatRequest req) {
+            return AddMWTools(req, tools);
         }
 
 
