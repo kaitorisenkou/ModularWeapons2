@@ -10,6 +10,7 @@ namespace ModularWeapons2 {
         public ModularPartsMountDef mountDef;
         public Vector2 offset = Vector2.zero;
         public Vector2 scale = Vector2.one;
+        public float rotation = 0;
         public int layerOrder = 0;
         [DefaultValue(null)]
         public GraphicData adapterGraphic = null;
@@ -222,17 +223,39 @@ namespace ModularWeapons2 {
             if (TryGetScaleFor(partsDef.attachedTo, ref result)) {
                 return result;
             }
-            return this.offset;
+            return this.scale;
         }
-        bool TryGetScaleFor(ModularPartsMountDef mountDef, ref Vector2 parentOffset) {
-            parentOffset *= this.scale;
+        bool TryGetScaleFor(ModularPartsMountDef mountDef, ref Vector2 parentScale) {
+            parentScale *= this.scale;
             if (this.mountDef == mountDef)
                 return true;
             if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
                 return false;
             }
             foreach (var i in this.mountDef.canAdaptAs) {
-                if (i.TryGetScaleFor(mountDef, ref parentOffset)) {
+                if (i.TryGetScaleFor(mountDef, ref parentScale)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public Quaternion GetRotationFor(ModularPartsDef partsDef) {
+            float result = 0;
+            if (TryGetRotationFor(partsDef.attachedTo, ref result)) {
+                return Quaternion.Euler(Vector3.up * result);
+            }
+            return Quaternion.Euler(Vector3.up * this.rotation);
+        }
+        bool TryGetRotationFor(ModularPartsMountDef mountDef, ref float parentRotation) {
+            parentRotation += this.rotation;
+            if (this.mountDef == mountDef)
+                return true;
+            if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
+                return false;
+            }
+            foreach (var i in this.mountDef.canAdaptAs) {
+                if (i.TryGetRotationFor(mountDef, ref parentRotation)) {
                     return true;
                 }
             }
