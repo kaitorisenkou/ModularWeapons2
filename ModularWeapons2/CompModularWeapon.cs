@@ -52,8 +52,7 @@ namespace ModularWeapons2 {
             }
             ScribeInt();
             if (Scribe.mode != LoadSaveMode.Saving) {
-                MW2Mod.JustQueueLongEvent(delegate () { RefleshParts(); }, "MW2_RefleshParts_OnExpose");
-                //RefleshParts(true);
+                MW2Mod.JustQueueLongEvent(delegate () { RefleshParts(false); }, "MW2_RefleshParts_OnExpose:" + parent.GetUniqueLoadID());
             }
             if (Scribe.mode == LoadSaveMode.PostLoadInit) {
                 var holder = GetHolder();
@@ -188,7 +187,7 @@ namespace ModularWeapons2 {
             attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
             RefleshParts();
         }
-        public virtual void RefleshParts(bool scribe = false) {
+        public virtual void RefleshParts(bool reloadAbility = true) {
             attachedParts = SolveAttachHelpers(attachHelpers);
             if (attachedParts.NullOrEmpty()) {
                 cachedEOStats = Enumerable.Empty<(StatDef, float)>();
@@ -200,9 +199,9 @@ namespace ModularWeapons2 {
                     .Select(t1 => (t1.Key, t1.Sum(t2 => t2.value)));
             }
             requestCache = null;
-            if (!scribe) {
-                tools = null;
-                verbPropertiesCached = null;
+            tools = null;
+            verbPropertiesCached = null;
+            if (reloadAbility) {
                 abilityPropDirty = true;
                 var abilityPropTmp = abilityProperties;
                 if (abilityPropTmp != AbilityProperties) {
@@ -210,19 +209,19 @@ namespace ModularWeapons2 {
                     ability = null;
                     charges_forExposer = 0;
                 }
-                var compEq = parent.TryGetComp<CompEquippable>();
-                if (compEq != null) {
-                    compEq?.verbTracker?.InitVerbsFromZero();
-                    foreach (Verb verb in compEq.AllVerbs) {
-                        verb.caster = GetHolder();
-                    }
-                }
-                verbTracker.InitVerbsFromZero();
-                foreach (Verb verb in verbTracker.AllVerbs) {
+            }
+            var compEq = parent.TryGetComp<CompEquippable>();
+            if (compEq != null) {
+                compEq?.verbTracker?.InitVerbsFromZero();
+                foreach (Verb verb in compEq.AllVerbs) {
                     verb.caster = GetHolder();
                 }
-                Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             }
+            verbTracker.InitVerbsFromZero();
+            foreach (Verb verb in verbTracker.AllVerbs) {
+                verb.caster = GetHolder();
+            }
+            Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             SetGraphicDirty();
             tacDeviceDirty = true;
         }
@@ -731,20 +730,28 @@ namespace ModularWeapons2 {
         public int RemainingCharges {
             get {
                 var result = AbilityForReading?.RemainingCharges ?? 0;
-                if (AbilityForReading != null && charges_forExposer != result) {
+                /*if (AbilityForReading != null && charges_forExposer != result) {
+                    MWDebug.LogMessage("[MW2] charges missmatch: " + parent.GetUniqueLoadID());
                     result = charges_forExposer;
                     AbilityForReading.RemainingCharges = result;
-                }
+                }*/
                 return result; 
             }
             set {
                 if (AbilityForReading != null) {
+                    MWDebug.LogMessage("[MW2] RemainingCharges_set: " + parent.GetUniqueLoadID());
                     AbilityForReading.RemainingCharges = value;
                     charges_forExposer = AbilityForReading.RemainingCharges;
                 }
             }
         }
         int charges_forExposer = 0;
+        public void UpdateRemainingCharges() {
+            if (AbilityForReading != null) {
+                MWDebug.LogMessage("[MW2] UpdateRemainingCharges: " + parent.GetUniqueLoadID());
+                charges_forExposer = AbilityForReading.RemainingCharges;
+            }
+        }
 
         public Thing ReloadableThing => this.parent;
 

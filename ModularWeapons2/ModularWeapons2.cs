@@ -99,6 +99,8 @@ namespace ModularWeapons2 {
                 harmony.Patch(
                     AccessTools.Method(innerType_ReloadJob, "MoveNext"),
                     transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_JobReload), null));
+            } else {
+                Log.Error("[MW2] innerType_ReloadJob not found!");
             }
 
             var innerType_ReloadUtil = typeof(ReloadableUtility).InnerTypes().FirstOrFallback(t => t.Name.Contains("<FindPotentiallyReloadableGear>"));
@@ -162,6 +164,16 @@ namespace ModularWeapons2 {
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_SetStyleDef), null));
             MWDebug.LogMessage("[MW2]Postfix_SetStyleDef done");
 
+            harmony.Patch(
+                AccessTools.Method(typeof(Ability), "PreActivate"),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_PreActivate), null));
+            MWDebug.LogMessage("[MW2]Postfix_PreActivate done");
+#if V16
+            harmony.Patch(
+                AccessTools.Method(typeof(FloatMenuOptionProvider_Reload), "GetReloadablesUsingAmmo"),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_GetReloadables), null));
+            MWDebug.LogMessage("[MW2]Postfix_GetReloadables done");
+#endif
             if (MW2Mod.IsWeaponRacksEnable) {
                 Log.Message("[MW2] WeaponRacks detected");
                 var WeaponRacksType = MW2Mod.Assembly_WeaponRacks.GetType("WeaponRacks.CachedDisplayItem");
@@ -190,7 +202,7 @@ namespace ModularWeapons2 {
                 //var LTODrawerType = AccessTools.TypeByName("ShowMeYourHands.HandDrawer");
                 var LTODrawerType = MW2Mod.Assembly_ShowMeYourHands.GetType("ShowMeYourHands.HandDrawer");
                 harmony.Patch(
-                    AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon",new Type[] { typeof(Thing), typeof(float), typeof(Pawn), typeof(Thing), typeof(bool), typeof(bool)}),
+                    AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon", new Type[] { typeof(Thing), typeof(float), typeof(Pawn), typeof(Thing), typeof(bool), typeof(bool) }),
                     transpiler: new HarmonyMethod(typeof(ModularWeapons2), nameof(Patch_SMYHHandDrawer), null));
                 harmony.Patch(
                     AccessTools.Method(LTODrawerType, "DrawHandsOnWeapon", new Type[] { typeof(Pawn) }),
@@ -625,7 +637,7 @@ namespace ModularWeapons2 {
                 }
                 return false;
             }
-            if(__instance.directOwner is CompEquippable && __instance.AllVerbs.NullOrEmpty()) {
+            if (__instance.directOwner is CompEquippable && __instance.AllVerbs.NullOrEmpty()) {
                 __instance.InitVerbsFromZero();
             }
             return true;
@@ -643,7 +655,7 @@ namespace ModularWeapons2 {
         }
         static void Postfix_PopulateMutableStats(ref HashSet<StatDef> ___mutableStats) {
             MWDebug.LogMessage("[MW2] Postfix_PopulateMutableStats worked");
-            foreach(var i in DefDatabase<ModularPartsDef>.AllDefsListForReading) {
+            foreach (var i in DefDatabase<ModularPartsDef>.AllDefsListForReading) {
                 if (i.StatFactors != null)
                     foreach (var j in i.StatFactors) {
                         ___mutableStats.Add(j.stat);
@@ -662,7 +674,7 @@ namespace ModularWeapons2 {
                 return true;
             }
             MWDebug.LogMessage("[MW2] type: " + ___thing.Graphic.GetType());
-            if (Graphic_UniqueByComp.TryGetAssigned(___thing.Graphic,out Graphic_UniqueByComp gUBC, ___thing)) {
+            if (Graphic_UniqueByComp.TryGetAssigned(___thing.Graphic, out Graphic_UniqueByComp gUBC, ___thing)) {
                 __result = gUBC.MatSingleFor(___thing);
                 MWDebug.LogMessage("[MW2] __result assigned");
                 return false;
@@ -670,8 +682,8 @@ namespace ModularWeapons2 {
             return true;
         }
 
-        static bool Prefix_ThingDefIcon(ThingDef thingDef,ref float scale) {
-            if (thingDef.comps.Any(t => t is CompProperties_ModularWeapon) && 
+        static bool Prefix_ThingDefIcon(ThingDef thingDef, ref float scale) {
+            if (thingDef.comps.Any(t => t is CompProperties_ModularWeapon) &&
                 typeof(Graphic_UniqueByComp).IsAssignableFrom(thingDef.graphicData.graphicClass)) {
                 scale /= 2;
             }
@@ -699,7 +711,7 @@ namespace ModularWeapons2 {
             return instructionList;
         }
         public static Rect GetTLOWeaponIconRect(Rect original, Thing weapon) {
-            if (Graphic_UniqueByComp.TryGetAssigned(weapon,out _) &&
+            if (Graphic_UniqueByComp.TryGetAssigned(weapon, out _) &&
                 weapon?.TryGetComp<CompModularWeapon>() != null) {
                 var center = original.center;
                 var result = new Rect(original);
@@ -713,7 +725,7 @@ namespace ModularWeapons2 {
 
         static IEnumerable<CodeInstruction> Patch_TLOGWeaponIcon2(IEnumerable<CodeInstruction> instructions) {
             var instructionList = instructions.ToList();
-            var drawTextureIndex = instructionList.FirstIndexOf(t => t.opcode == OpCodes.Call && t.operand is MethodInfo && (MethodInfo)t.operand == AccessTools.Method(typeof(GUI),nameof(GUI.DrawTexture), new Type[] { typeof(Rect), typeof(Texture) }));
+            var drawTextureIndex = instructionList.FirstIndexOf(t => t.opcode == OpCodes.Call && t.operand is MethodInfo && (MethodInfo)t.operand == AccessTools.Method(typeof(GUI), nameof(GUI.DrawTexture), new Type[] { typeof(Rect), typeof(Texture) }));
             if (drawTextureIndex > 0) {
                 instructionList[drawTextureIndex].operand = AccessTools.Method(typeof(Widgets), nameof(Widgets.DrawTextureFitted), new Type[] { typeof(Rect), typeof(Texture), typeof(float) });
                 instructionList.Insert(drawTextureIndex, new CodeInstruction(OpCodes.Ldc_R4, 1.0f));
@@ -739,7 +751,7 @@ namespace ModularWeapons2 {
             MethodInfo addMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetDivValueForSMYH));
             for (int i = 0; i < instructionList.Count; i++) {
                 if (instructionList[i].opcode == OpCodes.Ldflda && (FieldInfo)instructionList[i].operand == targetInfo) {
-                    instructionList.InsertRange(i+2, new CodeInstruction[] {
+                    instructionList.InsertRange(i + 2, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Ldarg_1),
                         new CodeInstruction(OpCodes.Call,addMethodInfo),
                         new CodeInstruction(OpCodes.Div)
@@ -793,17 +805,41 @@ namespace ModularWeapons2 {
             MWDebug.LogMessage("[MW2] Patch_SMYHHandDrawer2 done");
             return instructionList;
         }
-        public static Vector3 GetHandOffsetForSMYH_Main(Vector3 original,Pawn pawn) {
+        public static Vector3 GetHandOffsetForSMYH_Main(Vector3 original, Pawn pawn) {
             var comp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
             if (comp == null)
                 return original;
-            return original+comp.GetMainHandOffset();
+            return original + comp.GetMainHandOffset();
         }
         public static Vector3 GetHandOffsetForSMYH_Off(Vector3 original, Pawn pawn) {
             var comp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
             if (comp == null)
                 return original;
-            return original+comp.GetOffHandOffset();
+            return original + comp.GetOffHandOffset();
+        }
+
+
+        static void Postfix_PreActivate(Ability __instance) {
+            var comp = __instance.pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
+            if (comp != null) {
+                comp.UpdateRemainingCharges();
+            }
+        }
+
+        static void Postfix_GetReloadables(Pawn pawn, Thing clickedThing, ref IEnumerable<IReloadableComp> __result) {
+            __result= GetReloadablesFix_Inner(pawn, clickedThing, __result);
+        }
+        static IEnumerable<IReloadableComp> GetReloadablesFix_Inner(Pawn pawn, Thing clickedThing, IEnumerable<IReloadableComp> original) {
+            foreach(var i in original) {
+                yield return i;
+            }
+            Pawn_EquipmentTracker equipment = pawn.equipment;
+            if (((equipment != null) ? equipment.PrimaryEq : null) != null) {
+                IReloadableComp reloadableComp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
+                if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
+                    yield return reloadableComp;
+                }
+            }
         }
     }
 }
