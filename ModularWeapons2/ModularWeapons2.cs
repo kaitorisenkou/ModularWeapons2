@@ -820,7 +820,7 @@ namespace ModularWeapons2 {
 
 
         static void Postfix_PreActivate(Ability __instance) {
-            var comp = __instance.pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
+            var comp = __instance.pawn?.equipment?.Primary?.TryGetComp<CompModularWeapon>();
             if (comp != null) {
                 comp.UpdateRemainingCharges();
             }
