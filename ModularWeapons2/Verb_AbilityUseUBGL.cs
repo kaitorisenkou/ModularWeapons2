@@ -15,12 +15,26 @@ namespace ModularWeapons2 {
         }
         protected override bool TryCastShot() {
             this.ability.Activate(this.currentTarget, this.currentDestination);
+            var comp = verbTracker.directOwner as CompModularWeapon;
+            if (comp != null) {
+                comp.UpdateRemainingCharges();
+            }
             return base.TryCastShot();
         }
 
         public override void ExposeData() {
             base.ExposeData();
             Scribe_References.Look(ref this.ability, "ability", false);
+        }
+
+        protected override int ShotsPerBurst {
+            get {
+#if V15
+                return base.verbProps.burstShotCount;
+#else
+                return base.ShotsPerBurst;
+#endif
+            }
         }
     }
 }

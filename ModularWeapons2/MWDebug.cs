@@ -44,6 +44,6 @@ namespace ModularWeapons2 {
                 LogMessage("[MW2]"+i.GetUniqueLoadID()+": "+i.Graphic.GetType().ToString());
             }
         }
-    }
 #endif
+    }
 }
