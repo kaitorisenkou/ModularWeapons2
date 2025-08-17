@@ -187,6 +187,8 @@ namespace ModularWeapons2 {
             attachHelpers = new List<PartsAttachHelper>(attachHelpers_buffer);
             RefleshParts();
         }
+
+        public static Action<CompModularWeapon, List<Verb>, List<Verb>> MVCFBreakPoint_CompEq = null;
         public virtual void RefleshParts(bool reloadAbility = true) {
             attachedParts = SolveAttachHelpers(attachHelpers);
             if (attachedParts.NullOrEmpty()) {
@@ -210,16 +212,19 @@ namespace ModularWeapons2 {
                     charges_forExposer = 0;
                 }
             }
+            var holder = GetHolder();
             var compEq = parent.TryGetComp<CompEquippable>();
             if (compEq != null) {
-                compEq?.verbTracker?.InitVerbsFromZero();
+                var prevVerbs = compEq.AllVerbs;
+                compEq.verbTracker?.InitVerbsFromZero();
                 foreach (Verb verb in compEq.AllVerbs) {
-                    verb.caster = GetHolder();
+                    verb.caster = holder;
                 }
+                MVCFBreakPoint_CompEq?.Invoke(this, prevVerbs, compEq.AllVerbs);
             }
             verbTracker.InitVerbsFromZero();
             foreach (Verb verb in verbTracker.AllVerbs) {
-                verb.caster = GetHolder();
+                verb.caster = holder;
             }
             Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             SetGraphicDirty();
@@ -1042,5 +1047,8 @@ namespace ModularWeapons2 {
                 return Props.baseGraphicData.Graphic;
             }
         }
+
+        public virtual bool IsEquipment => parent.HasComp<CompEquippable>();
+        public virtual bool IsApparel => parent is Apparel;
     }
 }

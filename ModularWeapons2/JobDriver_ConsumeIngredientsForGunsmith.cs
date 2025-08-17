@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using RimWorld;
+using System.Collections.Generic;
 
 using Verse;
 using Verse.AI;
@@ -51,11 +52,19 @@ namespace ModularWeapons2 {
             //武器のカスタマイズを反映
             yield return Toils_General.Do(delegate {
                 comp.SetPartsWithBuffer();
-                pawn.equipment.TryDropEquipment(comp.parent, out var resultingEq, pawn.Position);
-                resultingEq.DeSpawn(DestroyMode.Vanish);
-                pawn.equipment.MakeRoomFor(resultingEq);
-                pawn.equipment.AddEquipment(resultingEq);
-                //comp.parent.Notify_Equipped(pawn);
+                if (comp.IsEquipment) {
+                    pawn.equipment.TryDropEquipment(comp.parent, out var resultingEq, pawn.Position);
+                    resultingEq.DeSpawn(DestroyMode.Vanish);
+                    pawn.equipment.MakeRoomFor(resultingEq);
+                    pawn.equipment.AddEquipment(resultingEq);
+                    //comp.parent.Notify_Equipped(pawn);
+                } else if(comp.IsApparel){
+                    pawn.apparel.TryDrop(comp.parent as Apparel, out var resultingApp, pawn.Position);
+                    resultingApp.DeSpawn(DestroyMode.Vanish);
+                    pawn.apparel.Wear(resultingApp);
+                } else {
+                    MWDebug.LogWarning("[MW2] CompModularWeapon is neither Equipment nor Apparel!");
+                }
             });
             yield break;
         }
