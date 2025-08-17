@@ -14,7 +14,6 @@ using UnityEngine;
 using Verse;
 using Verse.AI;
 using Verse.Noise;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ModularWeapons2 {
     [StaticConstructorOnStartup]
@@ -489,11 +488,14 @@ namespace ModularWeapons2 {
 
 
         static IEnumerable<CodeInstruction> Patch_AbilityTracker(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
-            int patchCount = 0;
             var instructionList = instructions.ToList();
-            MethodInfo targetInfo = AccessTools.PropertyGetter(typeof(CompEquippableAbility), nameof(CompEquippableAbility.AbilityForReading));
+            MethodInfo targetInfo_Equipment = AccessTools.PropertyGetter(typeof(CompEquippableAbility), nameof(CompEquippableAbility.AbilityForReading));
+            bool eqDone = false;
+            //↓1.5に対応できてない
+            MethodInfo targetInfo_Apparel = AccessTools.PropertyGetter(typeof(Apparel), nameof(Apparel.AllAbilitiesForReading));
+            bool apDone= false;
             for (int i = 0; i < instructionList.Count; i++) {
-                if (instructionList[i].opcode == OpCodes.Callvirt && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo) {
+                if (!eqDone && instructionList[i].opcode == OpCodes.Callvirt && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo_Equipment) {
                     do { i++; } while (!instructionList[i].labels.Any());
                     var firstInst = new CodeInstruction(OpCodes.Ldarg_0);
                     firstInst.labels = instructionList[i].labels;
@@ -504,18 +506,40 @@ namespace ModularWeapons2 {
                         new CodeInstruction(OpCodes.Ldfld,AccessTools.Field(typeof(Pawn_AbilityTracker),"allAbilitiesCached")),
                         new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ModularWeapons2), nameof(AddMWAbility)))
                     });
-                    patchCount++;
-                    break;
+                    eqDone = true;
+                }
+                if(!apDone && instructionList[i].opcode == OpCodes.Callvirt && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo_Apparel) {
+                    do { i++; } while (!instructionList[i].labels.Any());
+                    var firstInst = new CodeInstruction(OpCodes.Ldarg_0);
+                    firstInst.labels = instructionList[i].labels;
+                    instructionList[i].labels = new List<Label>();
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        firstInst,
+                        new CodeInstruction(OpCodes.Ldloc_S, 4),
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld,AccessTools.Field(typeof(Pawn_AbilityTracker),"allAbilitiesCached")),
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ModularWeapons2), nameof(AddMWAbility_Apparel)))
+                    });
+                    apDone = true;
                 }
             }
-            if (patchCount < 1) {
-                Log.Error("[MW]patch failed : Patch_AbilityTracker");
+            if (!eqDone || !apDone) {
+                Log.Error("[MW]patch failed : Patch_AbilityTracker (eq=" + eqDone + ", ap=" + apDone + ")");
             }
             MWDebug.LogMessage("[MW2] Patch_AbilityTracker done");
             return instructionList;
         }
         static void AddMWAbility(Pawn_AbilityTracker tracker, List<Ability> abilityList) {
             var comp = tracker.pawn.equipment?.Primary?.TryGetComp<CompModularWeapon>();
+            if (comp != null) {
+                var ability = comp.AbilityForReading;
+                if (ability != null) {
+                    abilityList.Add(ability);
+                }
+            }
+        }
+        static void AddMWAbility_Apparel(Pawn_AbilityTracker tracker, Apparel apparel, List<Ability> abilityList) {
+            var comp = apparel?.TryGetComp<CompModularWeapon>();
             if (comp != null) {
                 var ability = comp.AbilityForReading;
                 if (ability != null) {
@@ -590,7 +614,7 @@ namespace ModularWeapons2 {
             FieldInfo reqInfo = AccessTools.Field(innerType_ThingDefSDS, "req");
             MethodInfo replaceMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetOverriddenVerbs));
             for (int i = 0; i < instructionList.Count; i++) {
-                if (instructionList[i].opcode == OpCodes.Ldfld && (FieldInfo)instructionList[i].operand == targetInfo) {
+                if (instructionList[i].opcode == OpCodes.Ldfld && instructionList[i].operand is FieldInfo &&(FieldInfo)instructionList[i].operand == targetInfo) {
                     i++;
                     instructionList.InsertRange(i, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Ldarg_0),
@@ -608,7 +632,7 @@ namespace ModularWeapons2 {
         }
         static List<VerbProperties> GetOverriddenVerbs(List<VerbProperties> original, StatRequest req) {
             if (req.HasThing) {
-                var comp = req.Thing.TryGetComp<CompEquippable>();
+                var comp = req.Thing?.TryGetComp<CompEquippable>();
                 if (comp != null)
                     return comp.VerbProperties;
             }

@@ -32,7 +32,7 @@ namespace ModularWeapons2 {
 #if V15
                 return base.verbProps.burstShotCount;
 #else
-                return base.ShotsPerBurst;
+                return base.BurstShotCount;
 #endif
             }
         }
