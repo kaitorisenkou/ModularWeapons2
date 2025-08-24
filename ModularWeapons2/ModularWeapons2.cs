@@ -576,6 +576,7 @@ namespace ModularWeapons2 {
         static IEnumerable<CodeInstruction> Patch_ReloadableUtil(IEnumerable<CodeInstruction> instructions, ILGenerator generator) {
             int patchCount = 0;
             var instructionList = instructions.ToList();
+            var targetInfo = AccessTools.Method(typeof(ThingCompUtility), nameof(ThingCompUtility.TryGetComp), parameters: new Type[] { typeof(Thing) }, generics: new Type[] { typeof(CompApparelReloadable) });
             for (int i = 0; i < instructionList.Count; i++) {
                 if (instructionList[i].opcode == OpCodes.Isinst) {
                     instructionList[i] = new CodeInstruction(
@@ -583,11 +584,27 @@ namespace ModularWeapons2 {
                         AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable_ReloadableUtil))
                         );
                     patchCount++;
-                    break;
+                } else 
+                if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo &&
+                    instructionList[i].operand == targetInfo) {
+                    var label = generator.DefineLabel();
+                    instructionList[i].labels.Add(label);
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Dup),
+                        new CodeInstruction(OpCodes.Call,AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable_ReloadableUtil_Apparel))),
+                        new CodeInstruction(OpCodes.Dup),
+                        new CodeInstruction(OpCodes.Brfalse, label),
+                        new CodeInstruction(OpCodes.Stloc_3),
+                        new CodeInstruction(OpCodes.Pop),
+                        new CodeInstruction(OpCodes.Ldloc_3),
+                        new CodeInstruction(OpCodes.Ret)
+                    });
+                    patchCount++;
                 }
+                if (patchCount >= 2) break;
             }
-            if (patchCount < 1) {
-                Log.Error("[MW]patch failed : Patch_ReloadableUtil");
+            if (patchCount < 2) {
+                Log.Error("[MW]patch failed : Patch_ReloadableUtil (patchCount:" + patchCount + ")");
             }
             MWDebug.LogMessage("[MW2] Patch_ReloadableUtil done");
             return instructionList;
@@ -597,6 +614,10 @@ namespace ModularWeapons2 {
             var compEqAb = gear as IReloadableComp;
             if (compEqAb != null) return compEqAb;
             return gear.parent.TryGetComp<CompModularWeapon>();
+        }
+
+        static IReloadableComp FindIReloadable_ReloadableUtil_Apparel(Thing thing) {
+            return thing.TryGetComp<CompModularWeapon>();
         }
 
 
@@ -860,6 +881,14 @@ namespace ModularWeapons2 {
             Pawn_EquipmentTracker equipment = pawn.equipment;
             if (((equipment != null) ? equipment.PrimaryEq : null) != null) {
                 IReloadableComp reloadableComp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
+                if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
+                    yield return reloadableComp;
+                }
+            }
+
+            Pawn_ApparelTracker apparel = pawn.apparel;
+            foreach(var i in apparel.WornApparel) {
+                IReloadableComp reloadableComp = i.TryGetComp<CompModularWeapon>();
                 if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
                     yield return reloadableComp;
                 }
