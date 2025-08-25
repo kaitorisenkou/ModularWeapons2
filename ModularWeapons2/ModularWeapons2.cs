@@ -586,7 +586,7 @@ namespace ModularWeapons2 {
                     patchCount++;
                 } else 
                 if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo &&
-                    instructionList[i].operand == targetInfo) {
+                    (MethodInfo)instructionList[i].operand == targetInfo) {
                     var label = generator.DefineLabel();
                     instructionList[i].labels.Add(label);
                     instructionList.InsertRange(i, new CodeInstruction[] {
@@ -613,11 +613,13 @@ namespace ModularWeapons2 {
         static IReloadableComp FindIReloadable_ReloadableUtil(CompEquippable gear) {
             var compEqAb = gear as IReloadableComp;
             if (compEqAb != null) return compEqAb;
-            return gear.parent.TryGetComp<CompModularWeapon>();
+            var compMW = gear?.parent?.TryGetComp<CompModularWeapon>();
+            return compMW?.AmmoDef != null ? compMW : null;
         }
 
         static IReloadableComp FindIReloadable_ReloadableUtil_Apparel(Thing thing) {
-            return thing.TryGetComp<CompModularWeapon>();
+            var compMW = thing?.TryGetComp<CompModularWeapon>();
+            return compMW?.AmmoDef != null ? compMW : null;
         }
 
 
