@@ -779,7 +779,7 @@ namespace ModularWeapons2 {
         }
 
         public bool NeedsReload(bool allowForceReload) {
-            if (AbilityProperties?.ammoDef == null) {
+            if (AmmoDef == null) {
                 return false;
             }
             if (AbilityProperties.ammoCountToRefill == 0) {

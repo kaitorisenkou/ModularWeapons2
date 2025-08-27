@@ -591,6 +591,7 @@ namespace ModularWeapons2 {
                     instructionList[i].labels.Add(label);
                     instructionList.InsertRange(i, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Dup),
+                        new CodeInstruction(OpCodes.Ldarg_1),
                         new CodeInstruction(OpCodes.Call,AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable_ReloadableUtil_Apparel))),
                         new CodeInstruction(OpCodes.Dup),
                         new CodeInstruction(OpCodes.Brfalse, label),
@@ -613,13 +614,13 @@ namespace ModularWeapons2 {
         static IReloadableComp FindIReloadable_ReloadableUtil(CompEquippable gear) {
             var compEqAb = gear as IReloadableComp;
             if (compEqAb != null) return compEqAb;
-            var compMW = gear?.parent?.TryGetComp<CompModularWeapon>();
-            return compMW?.AmmoDef != null ? compMW : null;
+            var compMW = gear?.parent?.TryGetComp<CompModularWeapon>() ?? null;
+            return compMW;
         }
 
-        static IReloadableComp FindIReloadable_ReloadableUtil_Apparel(Thing thing) {
+        static IReloadableComp FindIReloadable_ReloadableUtil_Apparel(Thing thing, bool allowForcedReload) {
             var compMW = thing?.TryGetComp<CompModularWeapon>();
-            return compMW?.AmmoDef != null ? compMW : null;
+            return (compMW?.NeedsReload(allowForcedReload) ?? false) ? compMW : null;
         }
 
 
@@ -881,18 +882,30 @@ namespace ModularWeapons2 {
                 yield return i;
             }
             Pawn_EquipmentTracker equipment = pawn.equipment;
+            /*
             if (((equipment != null) ? equipment.PrimaryEq : null) != null) {
                 IReloadableComp reloadableComp = pawn.equipment.Primary.TryGetComp<CompModularWeapon>();
                 if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
                     yield return reloadableComp;
                 }
             }
+            */
+            if (equipment != null) { 
+                foreach(var i in equipment.AllEquipmentListForReading) {
+                    IReloadableComp reloadableComp = i.TryGetComp<CompModularWeapon>();
+                    if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
+                        yield return reloadableComp;
+                    }
+                }
+            }
 
             Pawn_ApparelTracker apparel = pawn.apparel;
-            foreach(var i in apparel.WornApparel) {
-                IReloadableComp reloadableComp = i.TryGetComp<CompModularWeapon>();
-                if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
-                    yield return reloadableComp;
+            if (apparel != null) {
+                foreach (var i in apparel.WornApparel) {
+                    IReloadableComp reloadableComp = i.TryGetComp<CompModularWeapon>();
+                    if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
+                        yield return reloadableComp;
+                    }
                 }
             }
         }
