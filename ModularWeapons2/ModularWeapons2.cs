@@ -553,7 +553,13 @@ namespace ModularWeapons2 {
             int patchCount = 0;
             var instructionList = instructions.ToList();
             MethodInfo targetInfo = AccessTools.Method(typeof(ThingCompUtility), nameof(ThingCompUtility.TryGetComp), parameters: new Type[] { typeof(Thing) }, generics: new Type[] { typeof(CompEquippableAbilityReloadable) });
+            MethodInfo targetInfo_apparel = AccessTools.Method(typeof(ThingCompUtility), nameof(ThingCompUtility.TryGetComp), parameters: new Type[] { typeof(Thing) }, generics: new Type[] { typeof(CompApparelReloadable) });
             for (int i = 0; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Call && 
+                    instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo_apparel) {
+                    instructionList[i].operand = AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable_Apparel));
+                    patchCount++;
+                }
                 if (instructionList[i].opcode == OpCodes.Call && instructionList[i].operand is MethodInfo && (MethodInfo)instructionList[i].operand == targetInfo) {
                     instructionList[i].operand = AccessTools.Method(typeof(ModularWeapons2), nameof(FindIReloadable));
                     patchCount++;
@@ -570,6 +576,11 @@ namespace ModularWeapons2 {
         static IReloadableComp FindIReloadable(Thing gear) {
             var compEq = gear.TryGetComp<CompEquippableAbilityReloadable>();
             if (compEq != null) return compEq;
+            return gear.TryGetComp<CompModularWeapon>();
+        }
+        static IReloadableComp FindIReloadable_Apparel(Thing gear) {
+            var compAp = gear.TryGetComp<CompApparelReloadable>();
+            if (compAp != null && compAp.NeedsReload(true)) return compAp;
             return gear.TryGetComp<CompModularWeapon>();
         }
 
