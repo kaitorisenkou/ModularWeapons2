@@ -835,7 +835,12 @@ namespace ModularWeapons2 {
                 if (ammo.stackCount < AbilityProperties.ammoCountPerCharge) {
                     return;
                 }
-                int num = Mathf.Clamp(ammo.stackCount / AbilityProperties.ammoCountPerCharge, 0, this.MaxCharges - this.RemainingCharges);
+                int num = 0;
+                if (AbilityProperties.ammoCountPerCharge == 0) {
+                    Log.Error("[MW2]Avoiding div-0! Please report to the mod author. (" + parent.def.defName + ")");
+                } else {
+                    num = Mathf.Clamp(ammo.stackCount / AbilityProperties.ammoCountPerCharge, 0, this.MaxCharges - this.RemainingCharges);
+                }
                 ammo.SplitOff(num * AbilityProperties.ammoCountPerCharge).Destroy(DestroyMode.Vanish);
                 this.RemainingCharges += num;
             }
