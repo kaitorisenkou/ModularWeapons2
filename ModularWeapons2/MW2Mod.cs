@@ -89,10 +89,10 @@ namespace ModularWeapons2 {
         public static void InjectStyleDefs() {
             var defs = DefDatabase<StyleCategoryDef>.AllDefsListForReading;
             int injectCount = 0;
-            foreach(var catDef in defs) {
-                foreach(var i in catDef.thingDefStyles) {
+            foreach (var catDef in defs) {
+                foreach (var i in catDef.thingDefStyles) {
                     if (!i.StyleDef.HasModExtension<ModExtension_ModularStyledWeapon>() &&
-                        i.ThingDef.HasComp<CompModularWeapon>() && 
+                        (i.ThingDef?.HasComp<CompModularWeapon>() ?? false) &&
                         typeof(Graphic_UniqueByComp).IsAssignableFrom(i.ThingDef.graphicData.graphicClass)) {
                         var data = i.StyleDef.graphicData;
                         data.graphicClass = typeof(Graphic_UniqueByComp);
