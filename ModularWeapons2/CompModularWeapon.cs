@@ -838,9 +838,10 @@ namespace ModularWeapons2 {
                 int num = 0;
                 if (AbilityProperties.ammoCountPerCharge == 0) {
                     Log.Error("[MW2]Avoiding div-0! Please report to the mod author. (" + parent.def.defName + ")");
-                } else {
-                    num = Mathf.Clamp(ammo.stackCount / AbilityProperties.ammoCountPerCharge, 0, this.MaxCharges - this.RemainingCharges);
+                    AbilityProperties.ammoCountPerCharge = 1;
+                    Log.Warning("[MW2] <ammoCountPerCharge> was set to 1 for today.");
                 }
+                num = Mathf.Clamp(ammo.stackCount / AbilityProperties.ammoCountPerCharge, 0, this.MaxCharges - this.RemainingCharges);
                 ammo.SplitOff(num * AbilityProperties.ammoCountPerCharge).Destroy(DestroyMode.Vanish);
                 this.RemainingCharges += num;
             }
