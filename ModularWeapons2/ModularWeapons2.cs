@@ -297,7 +297,16 @@ namespace ModularWeapons2 {
             int patchCount = 0;
             var instructionList = instructions.ToList();
             MethodInfo targetMethod = AccessTools.Method(typeof(Graphic), nameof(Graphic.MatAt));
+            MethodInfo targetMethod_Styled = AccessTools.Method(typeof(ThingStyleDef), nameof(ThingStyleDef.IconForIndex));
             for (int i = 1; i < instructionList.Count; i++) {
+                if (instructionList[i].opcode == OpCodes.Callvirt && (MethodInfo)instructionList[i].operand == targetMethod_Styled) {
+                    instructionList.RemoveAt(i);
+                    instructionList.InsertRange(i, new CodeInstruction[] {
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Call,AccessTools.Method(typeof(ModularWeapons2), nameof(IconForStyle)))
+                    });
+                    patchCount++;
+                }
                 if (instructionList[i].opcode == OpCodes.Callvirt && (MethodInfo)instructionList[i].operand == targetMethod) {
                     instructionList.RemoveAt(i - 1);
                     instructionList.Insert(i - 1, new CodeInstruction(OpCodes.Ldarg_0));
@@ -310,6 +319,12 @@ namespace ModularWeapons2 {
             MWDebug.LogMessage("[MW2] Patch_GetIconFor done");
             return instructionList;
         }
+        static Texture IconForStyle(ThingStyleDef style, int index, Rot4? rot, Thing thing) {
+            if (!thing.def.HasComp<CompModularWeapon>()) 
+                return style.IconForIndex(index, rot);
+            return thing.Graphic.MatAt(rot.Value, thing).mainTexture;
+        }
+
 
         static IEnumerable<CodeInstruction> Patch_TryGetTextureAtlasReplacementInfo(IEnumerable<CodeInstruction> instructions) {
             int patchCount = 0;
