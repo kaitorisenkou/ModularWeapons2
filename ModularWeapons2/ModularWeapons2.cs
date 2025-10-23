@@ -173,6 +173,12 @@ namespace ModularWeapons2 {
                 postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_GetReloadables), null));
             MWDebug.LogMessage("[MW2]Postfix_GetReloadables done");
 #endif
+
+            harmony.Patch(
+                AccessTools.Method(typeof(PawnAttackGizmoUtility), "AtLeastTwoSelectedPlayerPawnsHaveDifferentWeapons"),
+                postfix: new HarmonyMethod(typeof(ModularWeapons2), nameof(Postfix_AttackGizmoDifferentWeapon), null));
+            MWDebug.LogMessage("[MW2]Postfix_AttackGizmoDifferentWeapon done");
+
             if (MW2Mod.IsWeaponRacksEnable) {
                 Log.Message("[MW2] WeaponRacks detected");
                 var WeaponRacksType = MW2Mod.Assembly_WeaponRacks.GetType("WeaponRacks.CachedDisplayItem");
@@ -917,6 +923,16 @@ namespace ModularWeapons2 {
                     if (reloadableComp != null && clickedThing.def == reloadableComp.AmmoDef) {
                         yield return reloadableComp;
                     }
+                }
+            }
+        }
+
+        static void Postfix_AttackGizmoDifferentWeapon(ref bool __result) {
+            if (__result || Find.Selector.NumSelected <= 1) return;
+            foreach(var i in Find.Selector.SelectedObjectsListForReading) {
+                if ((i as Pawn)?.equipment?.Primary?.def?.comps?.Any(t => t is CompProperties_ModularWeapon) == true) {
+                    __result = true;
+                    return;
                 }
             }
         }
