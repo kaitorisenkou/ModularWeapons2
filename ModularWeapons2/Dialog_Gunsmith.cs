@@ -213,7 +213,7 @@ namespace ModularWeapons2 {
             GUI.DrawTexture(inRect, backTex.Value);
             Widgets.DrawBox(inRect);
             Rect weaponRect = new Rect(inRect) {
-                size = Vector2.one * Mathf.Min(inRect.width, inRect.height) * weaponGraphic.drawSize,
+                size = Vector2.one * Mathf.Min(inRect.width, inRect.height) * 2/*weaponGraphic.drawSize*/,
                 center = inRect.center
             };
             GUI.DrawTexture(weaponRect, weaponMat.mainTexture);
