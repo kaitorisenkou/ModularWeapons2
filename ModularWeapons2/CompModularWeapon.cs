@@ -429,6 +429,7 @@ namespace ModularWeapons2 {
                 //var offset = MountAdapters[i].offset + adapterTextureOffset[i];
                 var offset = MountAdapters[i].GetOffsetFor(attachedParts[i]) + adapterTextureOffset[i];
                 var scale = MountAdapters[i].GetScaleFor(attachedParts[i]);
+                var rotation = MountAdapters[i].GetRotationFor(attachedParts[i]);
                 /*var adapterGra = MountAdapters[i].GetAdapterGraphicFor(attachedParts[i]);
                 if (adapterGra != null) {
                     yield return new MWCameraRenderer.MWCameraRequest(
@@ -449,7 +450,8 @@ namespace ModularWeapons2 {
                         partMat,
                         offset,
                         MountAdapters[i].layerOrder,
-                        scale
+                        scale,
+                        rotation
                         );
 
                     var decal = decalHelpers.FirstOrFallback(t => t.attachMountDef == MountAdapters[i].mountDef);
@@ -458,7 +460,8 @@ namespace ModularWeapons2 {
                             decal.GetMaskedMaterial(partMat.mainTexture),
                             offset,
                             MountAdapters[i].layerOrder,
-                            scale
+                            scale,
+                            rotation
                             );
                     }
                 }
