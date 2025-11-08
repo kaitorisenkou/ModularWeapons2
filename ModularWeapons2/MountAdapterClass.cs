@@ -72,7 +72,12 @@ namespace ModularWeapons2 {
             } else {
                 result.y = offset.y > 0 ? 0.9375f : -0.9375f;
             }
-            result.x = Mathf.Min(result.x * 2.5f, 0.9375f);
+            result.x = result.x * 2.5f;
+            if (Mathf.Abs(result.y) > 0.74f) {
+                //result.x += 0.1f;
+                result.y = -result.y;
+            }
+            result.x = Mathf.Min(result.x, 0.9375f);
             normalizedOffset_cache = result;
         }
         public static void ResetAdaptersParent(IEnumerable<MountAdapterClass> children, MountAdapterClass parent = null) {
@@ -167,13 +172,14 @@ namespace ModularWeapons2 {
             TryGetAdapterCRFor(partsDef.attachedTo, layerOrder, adapterTextureOffset, Vector2.one, ref result);
             return result;
         }
-        bool TryGetAdapterCRFor(ModularPartsMountDef mountDef, int layerOrder, Vector2 offset, Vector2 scale, ref List<MWCameraRenderer.MWCameraRequest> result) {
+        bool TryGetAdapterCRFor(ModularPartsMountDef mountDef, int layerOrder, Vector2 offset, Vector2 scale,ref List<MWCameraRenderer.MWCameraRequest> result,float rotation= 0) {
             var newOffset = offset+this.offset;
             var newScale = scale*this.scale;
+            var newRotation = rotation + this.rotation;
             if (this.mountDef == mountDef) {
                 if (this.adapterGraphic != null) {
                     result.Add(new MWCameraRenderer.MWCameraRequest(
-                        this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale)
+                        this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale,newRotation)
                     );
                 }
                 return true;
@@ -185,7 +191,7 @@ namespace ModularWeapons2 {
                 if (i.TryGetAdapterCRFor(mountDef, layerOrder, newOffset, newScale, ref result)) {
                     if (this.adapterGraphic != null) {
                         result.Add(new MWCameraRenderer.MWCameraRequest(
-                            this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale)
+                            this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale,newRotation)
                             );
                     }
                     return true;
@@ -240,12 +246,14 @@ namespace ModularWeapons2 {
             return false;
         }
 
-        public Quaternion GetRotationFor(ModularPartsDef partsDef) {
+        public float GetRotationFor(ModularPartsDef partsDef) {
             float result = 0;
             if (TryGetRotationFor(partsDef.attachedTo, ref result)) {
-                return Quaternion.Euler(Vector3.up * result);
+                //return Quaternion.Euler(Vector3.up * result);
+                return result;
             }
-            return Quaternion.Euler(Vector3.up * this.rotation);
+            //return Quaternion.Euler(Vector3.up * this.rotation);
+            return this.rotation;
         }
         bool TryGetRotationFor(ModularPartsMountDef mountDef, ref float parentRotation) {
             parentRotation += this.rotation;
