@@ -28,6 +28,7 @@ namespace ModularWeapons2 {
             this.mountDef = original.mountDef;
             this.offset = original.offset;
             this.scale = original.scale;
+            this.rotation = original.rotation;
             this.layerOrder = original.layerOrder;
             this.adapterGraphic = original.adapterGraphic;
             this.allowMoreAdapter = original.allowMoreAdapter;
@@ -73,7 +74,7 @@ namespace ModularWeapons2 {
                 result.y = offset.y > 0 ? 0.9375f : -0.9375f;
             }
             result.x = result.x * 2.5f;
-            if (Mathf.Abs(result.y) > 0.74f) {
+            if (Mathf.Abs(offset.y + parent?.offset.y ?? 0) > 0.75f) {
                 //result.x += 0.1f;
                 result.y = -result.y;
             }
@@ -143,24 +144,24 @@ namespace ModularWeapons2 {
             GUI.color = tmpColor;
         }
 
-        public Vector2 GetOffsetFor(ModularPartsDef partsDef) {
+        public Vector2 GetOffsetFor(ModularPartsDef partsDef,float angle) {
             Vector2 result = Vector2.zero;
-            if(TryGetOffsetFor(partsDef.attachedTo, ref result)) {
+            if(TryGetOffsetFor(partsDef.attachedTo, angle, ref result)) {
                 return result;
             }
             return this.offset;
         }
-        bool TryGetOffsetFor(ModularPartsMountDef mountDef, ref Vector2 parentOffset) {
+        bool TryGetOffsetFor(ModularPartsMountDef mountDef, float angle, ref Vector2 parentOffset, bool rotate = false) {
             if (this.mountDef == mountDef) {
-                parentOffset += this.offset;
+                parentOffset += (Vector2)(Quaternion.AngleAxis(rotate ? angle : 0, Vector3.back) * (Vector3)this.offset);
                 return true;
             }
             if (!allowMoreAdapter || this.mountDef.canAdaptAs == null) {
                 return false;
             }
-            foreach(var i in this.mountDef.canAdaptAs) {
-                if (i.TryGetOffsetFor(mountDef, ref parentOffset)) {
-                    parentOffset += this.offset;
+            foreach (var i in this.mountDef.canAdaptAs) {
+                if (i.TryGetOffsetFor(mountDef, angle, ref parentOffset, true)) {
+                    parentOffset += (Vector2)(Quaternion.AngleAxis(rotate ? angle : 0, Vector3.back) * (Vector3)this.offset);
                     return true;
                 }
             }
@@ -169,17 +170,17 @@ namespace ModularWeapons2 {
 
         public IEnumerable<MWCameraRenderer.MWCameraRequest> GetAdapterCRFor(ModularPartsDef partsDef, Vector2 adapterTextureOffset, int layerOrder) {
             List<MWCameraRenderer.MWCameraRequest> result = new List<MWCameraRenderer.MWCameraRequest>();
-            TryGetAdapterCRFor(partsDef.attachedTo, layerOrder, adapterTextureOffset, Vector2.one, ref result);
+            TryGetAdapterCRFor(partsDef.attachedTo, layerOrder, adapterTextureOffset, Vector2.one, 0, ref result);
             return result;
         }
-        bool TryGetAdapterCRFor(ModularPartsMountDef mountDef, int layerOrder, Vector2 offset, Vector2 scale,ref List<MWCameraRenderer.MWCameraRequest> result,float rotation= 0) {
-            var newOffset = offset+this.offset;
-            var newScale = scale*this.scale;
+        bool TryGetAdapterCRFor(ModularPartsMountDef mountDef, int layerOrder, Vector2 offset, Vector2 scale, float rotation, ref List<MWCameraRenderer.MWCameraRequest> result) {
+            var newOffset = offset + (Vector2)(Quaternion.AngleAxis(rotation, Vector3.back) * (Vector3)this.offset);
+            var newScale = scale * this.scale;
             var newRotation = rotation + this.rotation;
             if (this.mountDef == mountDef) {
                 if (this.adapterGraphic != null) {
                     result.Add(new MWCameraRenderer.MWCameraRequest(
-                        this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale,newRotation)
+                        this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale, newRotation)
                     );
                 }
                 return true;
@@ -188,10 +189,10 @@ namespace ModularWeapons2 {
                 return false;
             }
             foreach (var i in this.mountDef.canAdaptAs) {
-                if (i.TryGetAdapterCRFor(mountDef, layerOrder, newOffset, newScale, ref result)) {
+                if (i.TryGetAdapterCRFor(mountDef, layerOrder, newOffset, newScale, newRotation, ref result)) {
                     if (this.adapterGraphic != null) {
                         result.Add(new MWCameraRenderer.MWCameraRequest(
-                            this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale,newRotation)
+                            this.adapterGraphic.Graphic.MatSingle, newOffset, layerOrder, newScale, newRotation)
                             );
                     }
                     return true;

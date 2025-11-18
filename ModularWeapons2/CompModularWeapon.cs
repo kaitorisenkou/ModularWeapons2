@@ -427,9 +427,9 @@ namespace ModularWeapons2 {
             for (int i = 0; i < MountAdapters.Count; i++) {
                 if (attachedParts.Count <= i || attachedParts[i] == null) continue;
                 //var offset = MountAdapters[i].offset + adapterTextureOffset[i];
-                var offset = MountAdapters[i].GetOffsetFor(attachedParts[i]) + adapterTextureOffset[i];
-                var scale = MountAdapters[i].GetScaleFor(attachedParts[i]);
                 var rotation = MountAdapters[i].GetRotationFor(attachedParts[i]);
+                var offset = MountAdapters[i].GetOffsetFor(attachedParts[i], rotation) + adapterTextureOffset[i];
+                var scale = MountAdapters[i].GetScaleFor(attachedParts[i]);
                 /*var adapterGra = MountAdapters[i].GetAdapterGraphicFor(attachedParts[i]);
                 if (adapterGra != null) {
                     yield return new MWCameraRenderer.MWCameraRequest(
