@@ -52,6 +52,8 @@ namespace ModularWeapons2 {
             this.worker = worker;
             this.map = weaponThing?.Map ?? gunsmithStation?.Map ?? worker?.Map;
         }
+
+        public static Action<Thing> CEBreakPoint_PostOpenGunsmith = null;
         public override void PostOpen() {
             base.PostOpen();
             forcePause = true;
@@ -61,6 +63,8 @@ namespace ModularWeapons2 {
 
             statEnrties_Initial = GetStatEnrties();
             statEnrties_Current = GetStatEnrties();
+
+            CEBreakPoint_PostOpenGunsmith?.Invoke(this.weaponThing);
 
             weaponComp.BufferCurrent(overrideBuffer: true);
         }
