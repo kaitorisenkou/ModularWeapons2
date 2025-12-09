@@ -189,6 +189,7 @@ namespace ModularWeapons2 {
         }
 
         public static Action<CompModularWeapon, List<Verb>, List<Verb>> MVCFBreakPoint_CompEq = null;
+        public static Action<CompModularWeapon> CEBreakPoint_RefleshParts = null;
         public virtual void RefleshParts(bool reloadAbility = true) {
             attachedParts = SolveAttachHelpers(attachHelpers);
             if (attachedParts.NullOrEmpty()) {
@@ -229,6 +230,8 @@ namespace ModularWeapons2 {
             Pawn_MeleeVerbs.PawnMeleeVerbsStaticUpdate();
             SetGraphicDirty();
             tacDeviceDirty = true;
+
+            CEBreakPoint_RefleshParts?.Invoke(this);
         }
         protected List<ModularPartsDef> SolveAttachHelpers(List<PartsAttachHelper> attachHelpers) {
             if (attachHelpers == null) attachHelpers = new List<PartsAttachHelper>();
