@@ -51,6 +51,9 @@ namespace ModularWeapons2 {
         public static bool IsCombatExtendedEnable => ExternalModAssemblies.Value[5] != null;
         public static Assembly Assembly_CE => ExternalModAssemblies.Value[5];
 
+        public static Action<Thing> CEBreakPoint_PostOpenGunsmith = null;
+        public static Action<CompModularWeapon> CEBreakPoint_RefleshParts = null;
+
 
         public static void JustQueueLongEvent(Action action, string key) {
 #if V15

@@ -53,7 +53,7 @@ namespace ModularWeapons2 {
             this.map = weaponThing?.Map ?? gunsmithStation?.Map ?? worker?.Map;
         }
 
-        public static Action<Thing> CEBreakPoint_PostOpenGunsmith = null;
+        static Action<Thing> CEBreakPoint_PostOpenGunsmith => MW2Mod.CEBreakPoint_PostOpenGunsmith;
         public override void PostOpen() {
             base.PostOpen();
             forcePause = true;

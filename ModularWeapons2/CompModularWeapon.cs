@@ -189,7 +189,7 @@ namespace ModularWeapons2 {
         }
 
         public static Action<CompModularWeapon, List<Verb>, List<Verb>> MVCFBreakPoint_CompEq = null;
-        public static Action<CompModularWeapon> CEBreakPoint_RefleshParts = null;
+        static Action<CompModularWeapon> CEBreakPoint_RefleshParts => MW2Mod.CEBreakPoint_RefleshParts;
         public virtual void RefleshParts(bool reloadAbility = true) {
             attachedParts = SolveAttachHelpers(attachHelpers);
             if (attachedParts.NullOrEmpty()) {
