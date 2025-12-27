@@ -340,19 +340,23 @@ namespace ModularWeapons2 {
             => DefDatabase<GunsmithPresetDef>.AllDefsListForReading.Where(t => t.weapon == this.parent.def);
 
         public void RandomizePartsForPawn(Pawn owner) {
-            List<string> weaponTags = null;
+            /*List<string> weaponTags = null;
             if (owner.kindDef != null && owner.kindDef.weaponTags != null) {
                 weaponTags = owner.kindDef.weaponTags;
             }
             string parentDef = parent.def.defName;
             IEnumerable<GunsmithPresetDef> allDefs = AvailableGunsmithPresets.Where(
                 t =>
-                t.weaponTags.NullOrEmpty() ||
-                (weaponTags != null && t.weaponTags.Any(t2 => weaponTags.Contains(t2)))
-                );
+                    (t.weaponTags.NullOrEmpty() ||
+                    (weaponTags != null && t.weaponTags.Any(t2 => weaponTags.Contains(t2))))
+                    &&
+                    (t.weaponClasses.NullOrEmpty() ||
+                    t.IsAllowedWeaponClass(owner))
+                );*/
+            IEnumerable<GunsmithPresetDef> allDefs = AvailableGunsmithPresets.Where(t => t.IsAllowed(owner));
             if (!allDefs.Any()) {
                 //TODO 完全ランダム
-                MWDebug.LogWarning("[MW2]no presetDefs found: " + parentDef);
+                MWDebug.LogWarning("[MW2]no presetDefs found: " + parent.def.defName);
                 return;
             }
             var def = allDefs.RandomElement();
@@ -360,13 +364,15 @@ namespace ModularWeapons2 {
             //必須パーツ
             var helpers = new List<PartsAttachHelperClass>(def.requiredParts);
             //任意パーツ
-            int optionLength = def.optionalParts.Count();
-            HashSet<int> optionIndexes =
-                new int[def.optionalPartsCount]
-                .Select(t => UnityEngine.Random.Range(0, optionLength))
-                .ToHashSet();
-            foreach (var i in optionIndexes) {
-                helpers.Add(def.optionalParts[i]);
+            if (def.optionalParts.Any()) {
+                int optionLength = def.optionalParts.Count();
+                HashSet<int> optionIndexes =
+                    new int[def.optionalPartsCount]
+                    .Select(t => UnityEngine.Random.Range(0, optionLength))
+                    .ToHashSet();
+                foreach (var i in optionIndexes) {
+                    helpers.Add(def.optionalParts[i]);
+                }
             }
             SetParts(helpers);
         }
