@@ -94,7 +94,7 @@ namespace ModularWeapons2 {
             int injectCount = 0;
             foreach (var catDef in defs) {
                 foreach (var i in catDef.thingDefStyles) {
-                    if (!i.StyleDef.HasModExtension<ModExtension_ModularStyledWeapon>() &&
+                    if (!(i?.StyleDef?.HasModExtension<ModExtension_ModularStyledWeapon>() ?? false) &&
                         (i.ThingDef?.HasComp<CompModularWeapon>() ?? false) &&
                         typeof(Graphic_UniqueByComp).IsAssignableFrom(i.ThingDef.graphicData.graphicClass)) {
                         var data = i.StyleDef.graphicData;
