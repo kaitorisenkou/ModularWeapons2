@@ -22,6 +22,9 @@ namespace ModularWeapons2 {
         }
 
         public virtual bool IsAllowedWeaponTag(Pawn pawn) {
+            if (weaponTags.NullOrEmpty()) {
+                return true;
+            }
             List<string> pawnWeaponTags = null;
             if (pawn.kindDef != null && pawn.kindDef.weaponTags != null) {
                 pawnWeaponTags = pawn.kindDef.weaponTags;
@@ -32,6 +35,9 @@ namespace ModularWeapons2 {
             return pawnWeaponTags.Any(t => weaponTags.Contains(t));
         }
         public virtual bool IsAllowedWeaponClass(Pawn pawn) {
+            if (weaponClasses.NullOrEmpty()) {
+                return true;
+            }
             var forbiddenByXenotype = pawn.genes?.Xenotype?.forbiddenWeaponClasses;
             if (!forbiddenByXenotype.NullOrEmpty()) {
                 foreach (var i in weaponClasses) {
