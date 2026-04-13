@@ -1001,14 +1001,19 @@ namespace ModularWeapons2 {
         public IEnumerable<T> GetAllModExtensionsFromParts<T>() where T :DefModExtension{
             for (int i = 0; i < mountAdapters.Count; i++) {
                 if (attachedParts[i] != null) {
-                    yield return attachedParts[i].GetModExtension<T>();
+                    var modEx = attachedParts[i].GetModExtension<T>();
+                    if (modEx != null) {
+                        yield return modEx;
+                    }
                 }
             }
         }
         public T GetFirstModExtensionsFromParts<T>() where T : DefModExtension {
             for (int i = 0; i < mountAdapters.Count; i++) {
                 if (attachedParts[i] != null) {
-                    return attachedParts[i].GetModExtension<T>();
+                    var result = attachedParts[i].GetModExtension<T>();
+                    if (result != null)
+                        return result;
                 }
             }
             return null;
