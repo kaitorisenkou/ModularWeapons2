@@ -183,7 +183,7 @@ namespace ModularWeapons2 {
                 var addRect = new Rect(0, statusHeight, inRect.width, heightAdd).RightPart(0.125f);
                 var entry_Init = statEnrties_Initial.FirstOrFallback(t => t.Item1.LabelCap == entry_Current.Item1.LabelCap, (null, 0));
                 if (entry_Current.Item2.HasValue) {
-                    float valueDiff = entry_Current.Item2.Value - entry_Init.Item2.Value;
+                    float valueDiff = entry_Current.Item2.Value - entry_Init.Item2 ?? 0f;
                     valueDiff = ProcessStatStyle(valueDiff, entry_Current.Item1.stat);
                     if (valueDiff >= 0.01f) {
                         labelColor = MW2Mod.lessIsBetter.Contains(entry_Current.Item1.LabelCap) ? Color.red : Color.green;
