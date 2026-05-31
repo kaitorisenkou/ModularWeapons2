@@ -409,18 +409,24 @@ namespace ModularWeapons2 {
             }
             if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_MeleeVerbs");
+            } else {
+                MWDebug.LogMessage("[MW2] Patch_MeleeVerbs: " + patchCount);
             }
             MWDebug.LogMessage("[MW2] Patch_MeleeVerbs done");
             return instructionList;
         }
         static List<Verb> GetAllVerbs_IncludeMW(CompEquippable compEq) {
+            MWDebug.LogMessage("[MW2]GetAllVerbs_IncludeMW called");
             if (Scribe.mode != LoadSaveMode.Inactive) {
+                MWDebug.LogMessage("[MW2]Scribe.mode != LoadSaveMode.Inactive");
                 return compEq.AllVerbs;
             }
             var compMW = compEq.parent.TryGetComp<CompModularWeapon>();
             if (compMW != null) {
+                MWDebug.LogMessage("[MW2]Concat(compMW.AllVerbs)");
                 return compEq.AllVerbs.Concat(compMW.AllVerbs).ToList();
             }
+            MWDebug.LogMessage("[MW2]compMW == null");
             return compEq.AllVerbs;
         }
 

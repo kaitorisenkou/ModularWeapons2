@@ -9,6 +9,7 @@ using System.Security.AccessControl;
 using System.Text;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 using Verse.Sound;
 using static HarmonyLib.Code;
 using static UnityEngine.Random;
@@ -670,6 +671,7 @@ namespace ModularWeapons2 {
                         i.caster = holder;
                     }
                 }
+                MWDebug.LogMessage("[MW2] " + verbs.Count + " verbs, " + verbs.Count(t => t.IsMeleeAttack) + " melees include");
                 return verbs;
             }
         }
@@ -679,6 +681,7 @@ namespace ModularWeapons2 {
             get {
                 if (tools == null) {
                     tools = GetToolsInt().ToList();
+                    MWDebug.LogMessage("[MW2] tools gen (" + tools.Count + ")");
                 }
                 return tools;
             }
@@ -689,6 +692,7 @@ namespace ModularWeapons2 {
                 if (effect.tools.NullOrEmpty())
                     continue;
                 foreach (var tool in effect.tools) {
+                    MWDebug.LogMessage("[MW2] "+parent.Label+"'s tool: "+tool.label);
                     yield return tool;
                 }
             }
@@ -706,6 +710,7 @@ namespace ModularWeapons2 {
             if ((item = (this.parent as Apparel)) != null) {
                 return p.apparel.WornApparel.Contains(item);
             }
+            if (p == null) return false;
             return p.equipment.AllEquipmentListForReading.Contains(this.parent);
         }
 

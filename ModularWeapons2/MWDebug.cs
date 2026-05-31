@@ -1,6 +1,8 @@
 ﻿using LudeonTK;
 using System.Diagnostics;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Verse;
 
@@ -43,6 +45,22 @@ namespace ModularWeapons2 {
             foreach (Thing i in Find.CurrentMap.thingGrid.ThingsAt(UI.MouseCell())) {
                 LogMessage("[MW2]"+i.GetUniqueLoadID()+": "+i.Graphic.GetType().ToString());
             }
+        }
+#endif
+#if DEBUG
+        [DebugAction("ModularWeapons2", null, false, false, false, false, false, 0, false, actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void CheckAllVerbs(Pawn p) {
+            List<Verb> allVerbs = new List<Verb>(p.verbTracker.AllVerbs);
+            allVerbs.AddRange(p.equipment.AllEquipmentListForReading.SelectMany(t => t?.GetComp<CompEquippable>()?.AllVerbs?? Array.Empty<Verb>().ToList()));
+            allVerbs.AddRange(p.apparel.WornApparel.SelectMany(t => t?.GetComp<CompEquippable>()?.AllVerbs ?? Array.Empty<Verb>().ToList()));
+
+            var getter = new TableDataGetter<Verb>[] {
+                new TableDataGetter<Verb>("string",v=>v.ToString()),
+                new TableDataGetter<Verb>("equipment",v=>v.EquipmentSource?.Label??"null"),
+                new TableDataGetter<Verb>("meleeDabageDef",v=>v.IsMeleeAttack?(v.verbProps.meleeDamageDef.label):"not melee")
+            };
+
+            DebugTables.MakeTablesDialog<Verb>(allVerbs.Where(t=>t!=null), getter);
         }
 #endif
     }
