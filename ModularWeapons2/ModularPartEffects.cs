@@ -186,4 +186,8 @@ namespace ModularWeapons2 {
             }
         }
     }
+
+    public interface IPartsModExtensionStatChangeText {
+        IEnumerable<(TaggedString text,int priority)> Texts { get; }
+    }
 }
