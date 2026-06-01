@@ -126,11 +126,23 @@ namespace ModularWeapons2 {
                 Widgets.Label(textRect, i.Item1);
                 textRect.y += textRect.height;
             }
+            //CE(あるいはその他外部mod)用に追加
+            foreach (var i in GetAllIPartsModExtensionStatChangeText().SelectMany(t => t.Texts).OrderByDescending(t => t.priority)) {
+                textRect.height = Text.CalcHeight(i.text, textRect.width);
+                Widgets.Label(textRect, i.text);
+                textRect.y += textRect.height;
+            }
             Widgets.EndScrollView();
             viewRect_statChanges = new Rect(0, 0, rect.width - 16f, textRect.y);
             GUI.color = tmpColor;
         }
-
+        public IEnumerable<IPartsModExtensionStatChangeText> GetAllIPartsModExtensionStatChangeText() {
+            foreach (var i in modExtensions) {
+                if (i is IPartsModExtensionStatChangeText) {
+                    yield return i as IPartsModExtensionStatChangeText;
+                }
+            }
+        }
 
         public bool IsResearchFinished(out IEnumerable<string> unfinishedLabels) {
             if (researchPrerequisites.NullOrEmpty()) {
