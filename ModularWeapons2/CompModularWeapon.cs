@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Text;
 using UnityEngine;
@@ -918,11 +919,12 @@ namespace ModularWeapons2 {
         public void DrawTacDevice(Vector3 drawLoc) {
             if (TacDevice == null) return;
             var holder = GetHolder();
-            Stance_Busy stance;
+            Stance_Busy stance = null;
             if (holder?.stances != null &&
                  (stance = (holder.stances.curStance as Stance_Busy)) != null &&
                  stance.verb != null &&
-                 stance.verb is Verb_Shoot
+                 //stance.verb is Verb_Shoot
+                 MW2Mod.CanActivateTacDevice(stance.verb.GetType())
                 ) {
                 //DrawTacDevice(holder.TrueCenter(), stance_Warmup.verb.CurrentTarget.CenterVector3);
                 var posA = holder.TrueCenter();
@@ -930,6 +932,7 @@ namespace ModularWeapons2 {
                     //posA += CalcYayoAnimWiggle(stance);
                     posA = drawLoc;
                 }
+                MWDebug.LogMessage("[MW2] calling DrawEffect");
                 TacDevice.DrawEffect(posA, stance.verb.CurrentTarget.CenterVector3);
             }
         }

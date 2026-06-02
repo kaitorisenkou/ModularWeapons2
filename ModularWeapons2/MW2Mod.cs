@@ -14,6 +14,8 @@ namespace ModularWeapons2 {
         public static List<string> lessIsBetter = new List<string>();
         public static List<StatDef> statDefsForceNonImmutable = new List<StatDef>();
 
+        public static List<Type> verbTypes_ActivateTacDevice = new List<Type> { typeof(Verb_LaunchProjectile) };
+
 
         static readonly string[] ExternalAssemblyNames = {
             "WeaponRacks",
@@ -53,6 +55,15 @@ namespace ModularWeapons2 {
 
         public static Action<Thing> CEBreakPoint_PostOpenGunsmith = null;
         public static Action<CompModularWeapon> CEBreakPoint_RefleshParts = null;
+
+        public static bool CanActivateTacDevice(Type verbType) {
+            foreach(var i in verbTypes_ActivateTacDevice) {
+                if (i.IsAssignableFrom(verbType)) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
 
         public static void JustQueueLongEvent(Action action, string key) {
