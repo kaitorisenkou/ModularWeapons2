@@ -137,11 +137,14 @@ namespace ModularWeapons2 {
             GUI.color = tmpColor;
         }
         public IEnumerable<IPartsModExtensionStatChangeText> GetAllIPartsModExtensionStatChangeText() {
+            if (modExtensions == null)
+                yield break;
             foreach (var i in modExtensions) {
-                if (i is IPartsModExtensionStatChangeText) {
+                if (i != null && i is IPartsModExtensionStatChangeText) {
                     yield return i as IPartsModExtensionStatChangeText;
                 }
             }
+            yield break;
         }
 
         public bool IsResearchFinished(out IEnumerable<string> unfinishedLabels) {
