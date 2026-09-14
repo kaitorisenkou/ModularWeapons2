@@ -836,27 +836,28 @@ namespace ModularWeapons2 {
             FieldInfo targetInfo = AccessTools.Field(typeof(GraphicData), nameof(GraphicData.drawSize));
             MethodInfo addMethodInfo = AccessTools.Method(typeof(ModularWeapons2), nameof(GetDivValueForSMYH));
             for (int i = 0; i < instructionList.Count; i++) {
-                if (instructionList[i].opcode == OpCodes.Ldflda && (FieldInfo)instructionList[i].operand == targetInfo) {
+                if (instructionList[i].opcode == OpCodes.Ldflda && (FieldInfo)instructionList[i].operand == targetInfo
+                    && instructionList[i + 1].opcode == OpCodes.Ldfld) {
                     instructionList.InsertRange(i + 2, new CodeInstruction[] {
                         new CodeInstruction(OpCodes.Ldarg_1),
-                        new CodeInstruction(OpCodes.Call,addMethodInfo),
-                        new CodeInstruction(OpCodes.Div)
+                        new CodeInstruction(OpCodes.Call,addMethodInfo)//,
+                        //new CodeInstruction(OpCodes.Div)
                     });
                     patchCount++;
                 }
             }
-            if (patchCount < 4) {
+            if (patchCount < 1) {
                 Log.Error("[MW]patch failed : Patch_SMYHHandDrawer (" + patchCount + ")");
             }
             MWDebug.LogMessage("[MW2] Patch_SMYHHandDrawer done");
             return instructionList;
         }
-        public static float GetDivValueForSMYH(Thing weapon) {
+        public static float GetDivValueForSMYH(float originalValue,Thing weapon) {
             if (weapon.HasComp<CompModularWeapon>() && Graphic_UniqueByComp.TryGetAssigned(weapon, out _)) {
                 //return weapon.Graphic.drawSize.x;
-                return 2;
+                return originalValue / 2f;
             }
-            return 1;
+            return originalValue;
         }
 
         static IEnumerable<CodeInstruction> Patch_SMYHHandDrawer2(IEnumerable<CodeInstruction> instructions) {
