@@ -3,16 +3,20 @@
 
 Kaitorisenkou's License Core
 Kaitorisenkouライセンス コア
-Version 1.0.1  (最終更新: 2025-06-13)
+Version 1.1.0  (最終更新: 2026-06-21)
+
+- 本製品を取得または利用した時点で、本ライセンスに同意したものとみなす。
 
 - 本ライセンスにおける「正規利用者」とは、開発者が指定する配布元から本製品を入手／ダウンロードした者を指す。
 
-- 本製品の「正規利用者」は以下の行為が許される。
+- 本製品の正規利用者は、以下の行為が許される。
   - 個人利用
   - 二次著作物の作成（ソフトウェア、動画、画像、文章など）
   - 開発者へのバグ報告およびフィードバック
 
 - バグ報告およびフィードバックは、READMEや概要欄で示された連絡手段のみで受け付ける。
+
+- 本製品との併用を前提とする二次著作物(MOD, アドオン, プラグイン等)は、本製品の正規利用者のみが利用できるものとする。
 
 - 正規/非正規にかかわらず、以下の行為は禁止とする。
   - 新規性や進歩性を欠いた本製品の再配布
@@ -24,12 +28,12 @@ Version 1.0.1  (最終更新: 2025-06-13)
 
 - 本製品に関連して紛争が生じた場合、開発者の居住する国（現在は日本）に所在する裁判所を、第一審の専属的合意管轄裁判所とする。
 
-- このライセンスは変更される場合があり、常に最新版が適用されるものとする。
+- このライセンスは変更される場合がある。利用を継続する限り、最新版のライセンスに同意したものとみなす。
 
 
 ModularWeapons2 Specific License Definitions
 ModularWeapons2特定ライセンス定義
-Version 1.1.0  (最終更新: 2025-06-13)
+Version 1.2.0  (最終更新: 2026-06-21)
 
 - 本文書は、Kaitorisenkou's License Core (以下「KLC」)を本製品に適用する際の補足定義を示すものである。
 
@@ -45,20 +49,22 @@ Version 1.1.0  (最終更新: 2025-06-13)
   - Github (https://github.com/kaitorisenkou/ModularWeapons2/releases)
   - Steam Workshop (https://steamcommunity.com/sharedfiles/filedetails/?id=3497834944)
 
-- 本ライセンス群は変更される場合があり、常に最新版が適用されるものとする。
+- 本ライセンス群は変更される場合がある。利用を継続する限り、最新版の本ライセンス群に同意したものとみなす。
 
 
 ## 要するに...
 - 悪い事しようとか考えるなよ
 - ちゃんとした所からダウンロードしな
-- 上2つを守ってれば好きに使っていいし、新しい作品を作ってもいいぞ
+- ルールを守ってれば好きに使っていいし、新しい作品を作ってもいいぞ
 - ライセンスが更新されたらちゃんと見に来いよ
 
 ----
 
 
 Kaitorisenkou's License Core
-Version 1.0.1  (Last update: 2025-06-13)
+Version 1.1.0  (Last update: 2025-06-21)
+
+- By acquiring or using this product, you are deemed to have agreed to this license.
 
 - In this license, "Authorized Users" refers only to those who obtained or downloaded the product from the distribution sources designated by the developer.
 
@@ -68,6 +74,8 @@ Version 1.0.1  (Last update: 2025-06-13)
   - Bug reports and feedback to the developer
 
 - Bug reports and feedback will only be accepted through the channels specified in the README or description.
+
+- Derivative works intended for require this product (MODs, add-ons, plugins, etc.) may only be used by "Authorized Users" of this product.
 
 - Regardless of whether a user is authorized or not, the following actions are prohibited:
   - Redistribution of this product, in whole or in part, without meaningful modification or original contribution
@@ -79,11 +87,11 @@ Version 1.0.1  (Last update: 2025-06-13)
 
 - Any disputes arising in connection with this product shall be subject to the exclusive jurisdiction of the courts located in the developer’s country of residence (currently Japan), in the first instance.
 
-- This license may be updated. The most current version of this license shall always apply.
+- This license may be updated. As long as you continue to use this product, you will be deemed to have agreed to the latest version of this license.
 
 
 ModularWeapons2 Specific License Definitions
-Version 1.1.0  (Last update: 2025-06-13)
+Version 1.2.0  (Last update: 2026-06-21)
 
 - This document provides supplementary definitions for the application of Kaitorisenkou's License Core (hereinafter "KLC") to this product.
 
@@ -99,7 +107,7 @@ Version 1.1.0  (Last update: 2025-06-13)
   - Github (https://github.com/kaitorisenkou/ModularWeapons2/releases)
   - Steam Workshop (https://steamcommunity.com/sharedfiles/filedetails/?id=3497834944)
 
-- This document may be updated. The most current version of this license shall always apply.
+- This document may be updated. As long as you continue to use this product, you will be deemed to have agreed to the latest version of the Licenses.
 
 
 ## In a nutshell...
